@@ -1,0 +1,131 @@
+/** @format */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Remove default margins and padding, but allow scrolling */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Proper full-width setup with scrolling */
+html,
+body {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  /* Allow vertical scrolling */
+}
+
+/* Prevent layout shift during scroll */
+html {
+  overflow-y: scroll;
+}
+
+#root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  /* Remove height constraint to allow scrolling */
+  transform: translateZ(0); /* GPU acceleration */
+}
+
+/* Improved custom cursor - faster and smoother */
+* {
+  cursor: none !important;
+}
+
+/* GPU acceleration for smoother animations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-scroll {
+  will-change: scroll-position;
+}
+
+/* Smooth scrolling with optimization */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px; /* Account for fixed navbar */
+}
+
+/* Optimize scroll performance */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  overflow-y: scroll;
+  overscroll-behavior-y: none; /* Prevent pull-to-refresh */
+}
+
+/* Hide default cursor on interactive elements */
+a,
+button,
+[role="button"] {
+  cursor: none !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(45deg, #2563eb, #7c3aed);
+}
+
+/* Video optimization */
+video {
+  object-fit: cover;
+  pointer-events: none;
+  transform: translateZ(0); /* GPU acceleration */
+  backface-visibility: hidden;
+}
+
+/* Canvas optimization */
+canvas {
+  transform: translateZ(0);
+  will-change: auto;
+}
+
+/* Optimize motion components */
+[class*="motion"] {
+  transform: translateZ(0);
+}
+
+/* Prevent text selection on animations */
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Responsive typography */
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 1920px) {
+  html {
+    font-size: 18px;
+  }
+}

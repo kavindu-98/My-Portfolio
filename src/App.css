@@ -1,0 +1,12 @@
+/**
+ * Full width app with proper scrolling
+ *
+ * @format
+ */
+
+#root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  /* Remove height and overflow constraints for proper scrolling */
+}
