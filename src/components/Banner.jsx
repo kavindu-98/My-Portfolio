@@ -9,10 +9,9 @@ import avatarVideo from "../assets/avator.mp4";
 const Banner = () => {
   const typedText = useTypingEffect(
     "Software Engineer & Full Stack Developer",
-    100
+    100,
   );
   const canvasRef = useRef(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimeoutRef = useRef(null);
 
@@ -122,65 +121,11 @@ const Banner = () => {
     };
   }, [isScrolling]);
 
-  // Mouse tracking for custom cursor - improved performance
-  useEffect(() => {
-    let animationFrameId;
-
-    const handleMouseMove = (e) => {
-      // Use requestAnimationFrame for smoother cursor movement
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
-
-      animationFrameId = requestAnimationFrame(() => {
-        setMousePosition({ x: e.clientX, y: e.clientY });
-      });
-    };
-
-    window.addEventListener("mousemove", handleMouseMove, { passive: true });
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
-    };
-  }, []);
-
   return (
     <>
-      {/* Custom Cursor - Improved Performance */}
-      <motion.div
-        className="fixed w-6 h-6 pointer-events-none z-50 mix-blend-difference"
-        animate={{
-          x: mousePosition.x - 12,
-          y: mousePosition.y - 12,
-        }}
-        transition={{
-          type: "spring",
-          stiffness: 800,
-          damping: 30,
-          mass: 0.5,
-        }}
-      >
-        <div className="w-full h-full bg-white rounded-full opacity-90" />
-        <motion.div
-          className="absolute inset-0 border border-white rounded-full"
-          animate={{
-            scale: [1, 1.3, 1],
-            opacity: [0.9, 0.4, 0.9],
-          }}
-          transition={{
-            duration: 1.5,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-      </motion.div>
-
       <section
         id="home"
-        className="relative w-full min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white overflow-hidden cursor-none"
+        className="relative w-full min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white overflow-hidden"
       >
         {/* Particle Canvas Background */}
         <canvas

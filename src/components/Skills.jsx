@@ -2,6 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import SkillsBannerAdvanced from "./SkillsBannerAdvanced";
 import {
   FaReact,
   FaNodeJs,
@@ -283,6 +284,24 @@ const Skills = () => {
             </p>
           </div>
         </motion.div>
+
+        {/* Animated Skills Banner */}
+        <SkillsBannerAdvanced
+          skills={[
+            "Web Design",
+            "Digital Marketing",
+            "Branding",
+            "Website Marketing",
+            "Apps Design",
+            "SEO",
+            "Development",
+            "UI/UX Design",
+            "Full Stack",
+            "Cloud Solutions",
+            "Database Design",
+            "Backend Development",
+          ]}
+        />
       </div>
     </section>
   );

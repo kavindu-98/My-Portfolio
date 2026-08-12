@@ -4,128 +4,269 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Remove default margins and padding, but allow scrolling */
+/* Dark theme base */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* Proper full-width setup with scrolling */
-html,
+html {
+  height: 100%;
+  overflow-x: hidden;
+}
+
 body {
   width: 100%;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
-  /* Allow vertical scrolling */
-}
-
-/* Prevent layout shift during scroll */
-html {
-  overflow-y: scroll;
+  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  color: #e5e7eb;
+  line-height: 1.6;
 }
 
 #root {
   width: 100%;
   margin: 0;
   padding: 0;
-  /* Remove height constraint to allow scrolling */
-  transform: translateZ(0); /* GPU acceleration */
-}
-
-/* Improved custom cursor - faster and smoother */
-* {
-  cursor: none !important;
-}
-
-/* GPU acceleration for smoother animations */
-.will-change-transform {
-  will-change: transform;
-}
-
-.will-change-scroll {
-  will-change: scroll-position;
-}
-
-/* Smooth scrolling with optimization */
-html {
-  scroll-behavior: smooth;
-  scroll-padding-top: 80px; /* Account for fixed navbar */
-}
-
-/* Optimize scroll performance */
-* {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-body {
-  overflow-y: scroll;
-  overscroll-behavior-y: none; /* Prevent pull-to-refresh */
-}
-
-/* Hide default cursor on interactive elements */
-a,
-button,
-[role="button"] {
-  cursor: none !important;
+  overflow-x: hidden;
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 12px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1a1a;
+  background: rgba(15, 23, 42, 0.5);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(45deg, #3b82f6, #8b5cf6);
-  border-radius: 4px;
+  background: linear-gradient(180deg, #6366f1, #a855f7);
+  border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(45deg, #2563eb, #7c3aed);
+  background: linear-gradient(180deg, #818cf8, #c084fc);
 }
 
-/* Video optimization */
-video {
-  object-fit: cover;
-  pointer-events: none;
-  transform: translateZ(0); /* GPU acceleration */
-  backface-visibility: hidden;
+/* Cursor */
+* {
+  cursor: auto;
 }
 
-/* Canvas optimization */
-canvas {
-  transform: translateZ(0);
-  will-change: auto;
+/* Smooth selections */
+::selection {
+  background-color: rgba(99, 102, 241, 0.3);
+  color: #fff;
 }
 
-/* Optimize motion components */
-[class*="motion"] {
-  transform: translateZ(0);
+/* Glassmorphism effects */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Prevent text selection on animations */
-.no-select {
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
+.glass-effect-strong {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Gradients */
+.bg-gradient-dark {
+  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(99, 102, 241, 0.6);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-in-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.6s ease-out;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.6s ease-out;
+}
+
+.animate-slide-left {
+  animation: slideLeft 0.6s ease-out;
+}
+
+.animate-slide-right {
+  animation: slideRight 0.6s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.6s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Utility classes */
+.backdrop-blur-lg {
+  backdrop-filter: blur(16px);
+}
+
+.backdrop-blur-xl {
+  backdrop-filter: blur(24px);
+}
+
+/* Smooth transitions */
+.transition-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Input styles */
+input,
+textarea,
+select {
+  font-size: 16px; /* Prevents zoom on iOS */
+  font-family: inherit;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280;
+}
+
+/* Button styles */
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Link styles */
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s ease;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  body {
+    font-size: 14px;
+  }
 }
 
 /* Responsive typography */
 @media (max-width: 640px) {
-  html {
+  body {
     font-size: 14px;
   }
 }
 
 @media (min-width: 1920px) {
-  html {
+  body {
     font-size: 18px;
   }
 }
