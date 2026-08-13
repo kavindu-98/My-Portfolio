@@ -3,8 +3,9 @@
 import React, { useEffect, useRef } from "react";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
+import SplitText from "gsap/SplitText";
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger, SplitText);
 
 /**
  * ============================================================
@@ -29,6 +30,7 @@ const STATS = [
 const About = () => {
   const sectionRef = useRef(null);
   const contentRef = useRef(null);
+  const headingRef = useRef(null);
   const visualRef = useRef(null);
   const wireframeRef = useRef(null);
 
@@ -37,11 +39,31 @@ const About = () => {
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
+    let split;
     const ctx = gsap.context(() => {
       if (reduceMotion) {
         gsap.set([contentRef.current, visualRef.current], { opacity: 1 });
         return;
       }
+
+      // Headline: splits into characters, staggers up as it enters view —
+      // same device as the hero name, carried forward into this section.
+      split = new SplitText(headingRef.current, {
+        type: "chars",
+        mask: "chars",
+      });
+      gsap.from(split.chars, {
+        yPercent: 120,
+        opacity: 0,
+        duration: 0.7,
+        stagger: 0.018,
+        ease: "power4.out",
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: "top 75%",
+          toggleActions: "play none none reverse",
+        },
+      });
 
       // Text column: rises in as the section enters view.
       gsap.from(contentRef.current, {
@@ -87,7 +109,10 @@ const About = () => {
       });
     });
 
-    return () => ctx.revert();
+    return () => {
+      ctx.revert();
+      split?.revert();
+    };
   }, []);
 
   return (
@@ -129,6 +154,7 @@ const About = () => {
           {/* ---------- Content ---------- */}
           <div ref={contentRef} className="space-y-7">
             <h2
+              ref={headingRef}
               style={{ color: PALETTE.text, letterSpacing: "-0.02em" }}
               className="text-4xl md:text-5xl lg:text-[3.4rem] font-semibold leading-[1.05]"
             >

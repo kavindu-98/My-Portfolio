@@ -1,15 +1,15 @@
 /** @format */
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
+import SplitText from "gsap/SplitText";
+import Flip from "gsap/Flip";
+import Draggable from "gsap/Draggable";
+import InertiaPlugin from "gsap/InertiaPlugin";
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger, SplitText, Flip, Draggable, InertiaPlugin);
 
-/**
- * Same tokens as Hero3D / About — keep in sync, or centralize into
- * a shared `theme.js` once you've settled the palette for good.
- */
 const PALETTE = {
   bg: "#FCFFFD",
   bgSection: "#E5FBF4",
@@ -18,49 +18,38 @@ const PALETTE = {
   text: "#1F5A4B",
 };
 
-const SKILL_CATEGORIES = [
+/**
+ * Tools only — no invented percentages. A precise number like "88%" on a
+ * skill is arbitrary on a portfolio anyway; a clean, honest list of what
+ * you actually use is more credible and, done right, more interesting.
+ */
+const CATEGORIES = [
   {
     name: "Frontend",
-    skills: [
-      { name: "React.js", level: 95 },
-      { name: "Next.js", level: 92 },
-      { name: "TypeScript", level: 88 },
-      { name: "Tailwind CSS", level: 95 },
-      { name: "JavaScript", level: 95 },
-      { name: "Redux", level: 85 },
+    tools: [
+      "React.js",
+      "Next.js",
+      "TypeScript",
+      "Tailwind CSS",
+      "JavaScript",
+      "Redux",
     ],
   },
   {
     name: "Backend",
-    skills: [
-      { name: "Node.js", level: 90 },
-      { name: "Express.js", level: 90 },
-      { name: "REST APIs", level: 92 },
-      { name: "WebSocket", level: 85 },
-      { name: "OAuth / JWT", level: 88 },
-    ],
+    tools: ["Node.js", "Express.js", "REST APIs", "WebSocket", "OAuth / JWT"],
   },
   {
     name: "Database & Cloud",
-    skills: [
-      { name: "MongoDB", level: 88 },
-      { name: "MySQL", level: 90 },
-      { name: "AWS", level: 85 },
-      { name: "Google Cloud", level: 80 },
-      { name: "Docker", level: 82 },
-    ],
+    tools: ["MongoDB", "MySQL", "AWS", "Google Cloud", "Docker"],
   },
   {
     name: "Tools & Platforms",
-    skills: [
-      { name: "Git", level: 92 },
-      { name: "Jira", level: 85 },
-      { name: "Linux", level: 80 },
-      { name: "Vite", level: 88 },
-      { name: "Azure DevOps", level: 82 },
-    ],
+    tools: ["Git", "Jira", "Linux", "Vite", "Azure DevOps"],
   },
 ];
+
+const ALL_TOOLS = CATEGORIES.flatMap((c) => c.tools);
 
 const SOFT_SKILLS = [
   "Problem Solving",
@@ -69,7 +58,6 @@ const SOFT_SKILLS = [
   "Project Management",
   "Mentoring",
 ];
-
 const INTERESTS = [
   "Web3 & Blockchain",
   "AI / ML Integration",
@@ -81,79 +69,125 @@ const INTERESTS = [
 const SkillsModern = () => {
   const sectionRef = useRef(null);
   const titleRef = useRef(null);
-  const cardsWrapRef = useRef(null);
   const iconRef = useRef(null);
+  const chipsWrapRef = useRef(null);
+  const marqueeTrackRef = useRef(null);
 
+  const [activeCategory, setActiveCategory] = useState(0);
+  const prevFlipState = useRef(null);
+
+  // ---- SplitText headline reveal, on scroll-in ----
+  useLayoutEffect(() => {
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (reduceMotion || !titleRef.current) return;
+
+    const split = new SplitText(titleRef.current, {
+      type: "chars",
+      mask: "chars",
+    });
+
+    gsap.from(split.chars, {
+      yPercent: 120,
+      opacity: 0,
+      duration: 0.7,
+      stagger: 0.02,
+      ease: "power4.out",
+      scrollTrigger: { trigger: titleRef.current, start: "top 82%" },
+    });
+
+    gsap.to(iconRef.current, {
+      rotation: 24,
+      ease: "none",
+      scrollTrigger: {
+        trigger: sectionRef.current,
+        start: "top bottom",
+        end: "bottom top",
+        scrub: 0.6,
+      },
+    });
+
+    return () => split.revert();
+  }, []);
+
+  // ---- Flip: chip grid morphs when the category tab changes ----
+  useLayoutEffect(() => {
+    if (!chipsWrapRef.current) return;
+    if (!prevFlipState.current) return; // first render — nothing to animate from
+
+    Flip.from(prevFlipState.current, {
+      duration: 0.55,
+      ease: "power3.inOut",
+      stagger: 0.02,
+      absolute: true,
+      onEnter: (els) =>
+        gsap.fromTo(
+          els,
+          { opacity: 0, scale: 0.85 },
+          { opacity: 1, scale: 1, duration: 0.4, stagger: 0.03 },
+        ),
+      onLeave: (els) =>
+        gsap.to(els, { opacity: 0, scale: 0.85, duration: 0.3 }),
+    });
+  }, [activeCategory]);
+
+  const handleTabChange = (idx) => {
+    if (idx === activeCategory || !chipsWrapRef.current) return;
+    prevFlipState.current = Flip.getState(chipsWrapRef.current.children);
+    setActiveCategory(idx);
+  };
+
+  // ---- Marquee: auto-scrolls, draggable, coasts to a stop with inertia ----
   useEffect(() => {
+    const track = marqueeTrackRef.current;
+    if (!track) return;
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
-    const ctx = gsap.context(() => {
-      if (reduceMotion) {
-        gsap.set("[data-skill-card]", { opacity: 1, rotationX: 0, y: 0 });
-        gsap.set(".skill-bar-fill", { width: "var(--level)" });
-        return;
+    const halfWidth = track.scrollWidth / 2;
+    const wrap = gsap.utils.wrap(-halfWidth, 0);
+    let xPos = 0;
+    let autoScroll = !reduceMotion;
+    let raf;
+
+    const tick = () => {
+      if (autoScroll) {
+        xPos -= 0.55;
+        xPos = wrap(xPos);
+        gsap.set(track, { x: xPos });
       }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
 
-      gsap.from(titleRef.current, {
-        opacity: 0,
-        y: 30,
-        duration: 0.8,
-        ease: "power3.out",
-        scrollTrigger: { trigger: titleRef.current, start: "top 80%" },
-      });
-
-      // Cards tilt in from a slight 3D lean — perspective lives on the
-      // grid wrapper, each card rotates back to flat as it settles.
-      const cards = gsap.utils.toArray(
-        "[data-skill-card]",
-        cardsWrapRef.current,
-      );
-      cards.forEach((card, i) => {
-        gsap.from(card, {
-          opacity: 0,
-          rotationX: -18,
-          y: 40,
-          transformOrigin: "top center",
-          duration: 0.8,
-          delay: i * 0.08,
-          ease: "power3.out",
-          scrollTrigger: { trigger: card, start: "top 85%" },
-        });
-      });
-
-      // Skill bars fill once, as each card's bars enter view.
-      gsap.utils.toArray(".skill-bar-fill").forEach((bar) => {
-        const level = parseFloat(bar.getAttribute("data-level"));
-        gsap.fromTo(
-          bar,
-          { width: "0%" },
-          {
-            width: `${level}%`,
-            duration: 1.1,
-            ease: "power3.out",
-            scrollTrigger: { trigger: bar, start: "top 90%", once: true },
-          },
-        );
-      });
-
-      // Small wireframe accent keeps turning through the section —
-      // the same continuity device used in Hero3D and About.
-      gsap.to(iconRef.current, {
-        rotation: 24,
-        ease: "none",
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top bottom",
-          end: "bottom top",
-          scrub: 0.6,
-        },
-      });
+    const draggables = Draggable.create(track, {
+      type: "x",
+      inertia: true,
+      onPress() {
+        autoScroll = false;
+      },
+      onDrag() {
+        xPos = wrap(this.x);
+        gsap.set(track, { x: xPos });
+      },
+      onThrowUpdate() {
+        xPos = wrap(this.x);
+        gsap.set(track, { x: xPos });
+      },
+      onThrowComplete() {
+        autoScroll = true;
+      },
     });
 
-    return () => ctx.revert();
+    return () => {
+      cancelAnimationFrame(raf);
+      draggables.forEach((d) => d.kill());
+    };
   }, []);
+
+  const activeTools = CATEGORIES[activeCategory].tools;
 
   return (
     <section
@@ -166,7 +200,6 @@ const SkillsModern = () => {
         className="absolute top-0 left-0 right-0 border-t"
       />
 
-      {/* Corner wireframe accent — quiet, top-right */}
       <div
         ref={iconRef}
         style={{ opacity: 0.5 }}
@@ -176,7 +209,7 @@ const SkillsModern = () => {
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 md:px-10">
-        <div ref={titleRef} className="mb-16">
+        <div className="mb-14">
           <div
             style={{ color: PALETTE.accent }}
             className="font-mono text-xs tracking-[0.3em] mb-6 flex items-center gap-3"
@@ -188,84 +221,87 @@ const SkillsModern = () => {
             03 — SKILLS
           </div>
           <h2
+            ref={titleRef}
             style={{ color: PALETTE.text, letterSpacing: "-0.02em" }}
             className="text-4xl md:text-5xl lg:text-[3.4rem] font-semibold leading-[1.05]"
           >
-            Technical <span style={{ color: PALETTE.accent }}>expertise.</span>
+            Tools I reach for.
           </h2>
         </div>
 
-        {/* Skills grid */}
+        {/* ---------- Category tabs ---------- */}
+        <div className="flex flex-wrap gap-3 mb-10">
+          {CATEGORIES.map((cat, idx) => {
+            const active = idx === activeCategory;
+            return (
+              <button
+                key={cat.name}
+                onClick={() => handleTabChange(idx)}
+                style={{
+                  borderColor: active ? PALETTE.accent : PALETTE.border,
+                  background: active ? PALETTE.accent : "transparent",
+                  color: active ? PALETTE.bg : PALETTE.text,
+                }}
+                className="px-5 py-2.5 rounded-full border font-mono text-xs tracking-[0.12em] transition-colors duration-300"
+              >
+                {cat.name.toUpperCase()}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ---------- Tool chips — layout morphs via Flip on tab change ---------- */}
         <div
-          ref={cardsWrapRef}
-          style={{ perspective: "1400px" }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+          ref={chipsWrapRef}
+          className="flex flex-wrap gap-3 mb-20 min-h-[3rem]"
         >
-          {SKILL_CATEGORIES.map((category, idx) => (
-            <div
-              key={category.name}
-              data-skill-card
+          {activeTools.map((tool) => (
+            <span
+              key={tool}
               style={{
                 borderColor: PALETTE.border,
+                color: PALETTE.text,
                 background: PALETTE.bgSection,
               }}
-              className="group rounded-2xl border p-7 transition-colors duration-300 hover:border-[var(--accent)]"
+              className="px-5 py-2.5 rounded-full border text-sm"
             >
-              <div className="mb-8">
-                <div
-                  style={{ color: PALETTE.accent }}
-                  className="font-mono text-xs tracking-widest mb-3"
-                >
-                  {String(idx + 1).padStart(2, "0")}
-                </div>
-                <h3
-                  style={{ color: PALETTE.text }}
-                  className="text-lg font-semibold"
-                >
-                  {category.name}
-                </h3>
-              </div>
-
-              <div className="space-y-5">
-                {category.skills.map((skill) => (
-                  <div key={skill.name}>
-                    <div className="flex justify-between items-center mb-2">
-                      <span
-                        style={{ color: PALETTE.text, opacity: 0.85 }}
-                        className="text-sm"
-                      >
-                        {skill.name}
-                      </span>
-                      <span
-                        style={{ color: PALETTE.accent }}
-                        className="font-mono text-[11px] font-semibold"
-                      >
-                        {skill.level}%
-                      </span>
-                    </div>
-                    <div
-                      style={{ background: PALETTE.border }}
-                      className="w-full h-1.5 rounded-full overflow-hidden"
-                    >
-                      <div
-                        className="skill-bar-fill h-full rounded-full"
-                        data-level={skill.level}
-                        style={{
-                          background: PALETTE.accent,
-                          width: 0,
-                          "--level": `${skill.level}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+              {tool}
+            </span>
           ))}
         </div>
 
-        {/* Soft skills + interests */}
-        <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* ---------- Marquee: every tool, one continuous line, drag it ---------- */}
+        <div
+          style={{ borderColor: PALETTE.border }}
+          className="relative border-t border-b py-6 -mx-6 md:-mx-10 overflow-hidden select-none"
+        >
+          <div
+            ref={marqueeTrackRef}
+            className="flex w-max gap-10 cursor-grab active:cursor-grabbing whitespace-nowrap px-6 md:px-10"
+          >
+            {[...ALL_TOOLS, ...ALL_TOOLS].map((tool, i) => (
+              <span
+                key={`${tool}-${i}`}
+                style={{ color: PALETTE.text }}
+                className="text-2xl md:text-3xl font-semibold tracking-tight opacity-80 flex items-center gap-10"
+              >
+                {tool}
+                <span style={{ color: PALETTE.accent }} className="text-lg">
+                  ●
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
+        <p
+          style={{ color: PALETTE.text, opacity: 0.45 }}
+          className="font-mono text-[10px] tracking-widest mt-3 text-center"
+        >
+          DRAG TO EXPLORE
+        </p>
+
+        {/* ---------- Soft skills + interests ---------- */}
+        <div className="mt-20 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div
             style={{
               borderColor: PALETTE.border,
