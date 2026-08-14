@@ -12,6 +12,7 @@ const Contact = () => {
     if (titleRef.current) {
       animateInOnScroll(titleRef.current);
     }
+
     if (formRef.current) {
       animateInOnScroll(formRef.current, 0.1);
     }
@@ -19,147 +20,922 @@ const Contact = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Handle form submission
+
     console.log("Form submitted");
   };
 
-  return (
-    <section
-      ref={containerRef}
-      className="relative min-h-screen w-full py-20 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 overflow-hidden"
-    >
-      {/* Background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/2 left-10 w-96 h-96 bg-indigo-600 rounded-full blur-3xl opacity-10 animate-pulse" />
-        <div className="absolute top-1/2 right-10 w-96 h-96 bg-purple-600 rounded-full blur-3xl opacity-10 animate-pulse" />
-      </div>
+  const socials = [
+    {
+      name: "GitHub",
+      icon: "🐙",
+      url: "https://github.com/kavindu-98",
+    },
+    {
+      name: "LinkedIn",
+      icon: "💼",
+      url: "https://linkedin.com/in/kavindu-abeykoon",
+    },
+    {
+      name: "Email",
+      icon: "✉",
+      url: "mailto:kavinduumayanga058@gmail.com",
+    },
+    {
+      name: "Phone",
+      icon: "📱",
+      url: "tel:0768510781",
+    },
+  ];
 
-      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Title */}
-        <div ref={titleRef} className="text-center mb-16">
-          <div className="inline-block">
-            <span className="px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
-              Get In Touch
-            </span>
+  return (
+    <section ref={containerRef} id="contact" className="contact-section">
+      <style>{`
+        /* ====================================================
+           DESIGN TOKENS
+        ==================================================== */
+
+        .contact-section {
+          --bg: #f1f9f6;
+          --paper: #fcfffd;
+
+          --green: #5db9a2;
+          --green-light: #e5fbf4;
+          --green-dark: #1f5a4b;
+
+          --text: #1f5a4b;
+          --muted: #66877f;
+
+          --line: rgba(31, 90, 75, 0.13);
+
+          position: relative;
+          width: 100%;
+          min-height: 100vh;
+
+          padding: 140px 0 120px;
+
+          background: var(--bg);
+          color: var(--text);
+
+          overflow: hidden;
+          isolation: isolate;
+        }
+
+        /* ====================================================
+           BACKGROUND GRID
+        ==================================================== */
+
+        .contact-grid {
+          position: absolute;
+
+          inset: -150px 0 0;
+
+          pointer-events: none;
+
+          opacity: 0.42;
+
+          background-image:
+            linear-gradient(
+              var(--line) 1px,
+              transparent 1px
+            ),
+            linear-gradient(
+              90deg,
+              var(--line) 1px,
+              transparent 1px
+            );
+
+          background-size: 70px 70px;
+
+          mask-image:
+            linear-gradient(
+              to bottom,
+              transparent,
+              black 12%,
+              black 88%,
+              transparent
+            );
+
+          z-index: -3;
+        }
+
+        /* ====================================================
+           FLOATING GREEN GLOW
+        ==================================================== */
+
+        .contact-glow {
+          position: absolute;
+
+          width: 420px;
+          height: 420px;
+
+          border-radius: 50%;
+
+          filter: blur(100px);
+
+          pointer-events: none;
+
+          opacity: 0.18;
+
+          z-index: -2;
+        }
+
+        .contact-glow-one {
+          top: 25%;
+          left: -180px;
+
+          background: var(--green);
+        }
+
+        .contact-glow-two {
+          top: 45%;
+          right: -180px;
+
+          background: #8dd8c1;
+        }
+
+        /* ====================================================
+           CONTAINER
+        ==================================================== */
+
+        .contact-container {
+          position: relative;
+
+          width: min(1100px, 90%);
+
+          margin: 0 auto;
+
+          z-index: 5;
+        }
+
+        /* ====================================================
+           HEADER
+        ==================================================== */
+
+        .contact-header {
+          max-width: 850px;
+
+          margin: 0 auto 80px;
+
+          text-align: center;
+        }
+
+        .contact-label {
+          display: inline-flex;
+
+          align-items: center;
+
+          gap: 10px;
+
+          margin-bottom: 25px;
+
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 9px;
+
+          letter-spacing: 0.23em;
+
+          color: var(--green);
+
+          text-transform: uppercase;
+        }
+
+        .contact-label-line {
+          width: 34px;
+
+          height: 1px;
+
+          background: var(--green);
+        }
+
+        .contact-header h2 {
+          margin: 0;
+
+          font-family:
+            "Inter",
+            sans-serif;
+
+          font-size:
+            clamp(
+              4rem,
+              8vw,
+              8rem
+            );
+
+          line-height: 0.82;
+
+          letter-spacing: -0.08em;
+
+          font-weight: 600;
+
+          color: var(--text);
+        }
+
+        .contact-header h2 span {
+          display: block;
+
+          color:
+            rgba(
+              31,
+              90,
+              75,
+              0.2
+            );
+        }
+
+        .contact-description {
+          max-width: 500px;
+
+          margin: 32px auto 0;
+
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 9px;
+
+          line-height: 1.8;
+
+          letter-spacing: 0.04em;
+
+          color: var(--muted);
+
+          opacity: 0.85;
+        }
+
+        /* ====================================================
+           FORM WRAPPER
+        ==================================================== */
+
+        .contact-form-wrapper {
+          position: relative;
+
+          max-width: 850px;
+
+          margin: 0 auto;
+
+          padding: 45px;
+
+          background:
+            rgba(
+              252,
+              255,
+              253,
+              0.72
+            );
+
+          border:
+            1px solid
+            var(--line);
+
+          backdrop-filter: blur(14px);
+
+          box-shadow:
+            0 30px 100px
+            rgba(
+              31,
+              90,
+              75,
+              0.06
+            );
+
+          transition:
+            border-color 400ms ease,
+            box-shadow 400ms ease;
+        }
+
+        .contact-form-wrapper:hover {
+          border-color:
+            rgba(
+              93,
+              185,
+              162,
+              0.4
+            );
+
+          box-shadow:
+            0 35px 100px
+            rgba(
+              31,
+              90,
+              75,
+              0.09
+            );
+        }
+
+        /* ====================================================
+           FORM GRID
+        ==================================================== */
+
+        .contact-form {
+          display: flex;
+
+          flex-direction: column;
+
+          gap: 25px;
+        }
+
+        .contact-row {
+          display: grid;
+
+          grid-template-columns:
+            1fr 1fr;
+
+          gap: 25px;
+        }
+
+        /* ====================================================
+           FORM FIELD
+        ==================================================== */
+
+        .contact-field {
+          display: flex;
+
+          flex-direction: column;
+        }
+
+        .contact-field label {
+          margin-bottom: 9px;
+
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 8px;
+
+          letter-spacing: 0.18em;
+
+          color: var(--green-dark);
+
+          text-transform: uppercase;
+        }
+
+        .contact-field input,
+        .contact-field textarea {
+          width: 100%;
+
+          padding:
+            15px 16px;
+
+          background:
+            rgba(
+              241,
+              249,
+              246,
+              0.7
+            );
+
+          border:
+            1px solid
+            rgba(
+              31,
+              90,
+              75,
+              0.12
+            );
+
+          color: var(--text);
+
+          font-family:
+            "Inter",
+            sans-serif;
+
+          font-size: 11px;
+
+          outline: none;
+
+          transition:
+            border-color 300ms ease,
+            background 300ms ease,
+            box-shadow 300ms ease;
+        }
+
+        .contact-field input::placeholder,
+        .contact-field textarea::placeholder {
+          color:
+            rgba(
+              102,
+              135,
+              127,
+              0.65
+            );
+        }
+
+        .contact-field input:focus,
+        .contact-field textarea:focus {
+          border-color:
+            rgba(
+              93,
+              185,
+              162,
+              0.65
+            );
+
+          background:
+            rgba(
+              252,
+              255,
+              253,
+              0.95
+            );
+
+          box-shadow:
+            0 0 0 3px
+            rgba(
+              93,
+              185,
+              162,
+              0.08
+            );
+        }
+
+        .contact-field textarea {
+          min-height: 150px;
+
+          resize: vertical;
+
+          line-height: 1.7;
+        }
+
+        /* ====================================================
+           SUBMIT BUTTON
+        ==================================================== */
+
+        .contact-submit-wrapper {
+          padding-top: 8px;
+        }
+
+        .contact-submit {
+          position: relative;
+
+          width: 100%;
+
+          padding: 16px 25px;
+
+          border: 1px solid var(--green);
+
+          background: var(--green);
+
+          color: white;
+
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 9px;
+
+          font-weight: 600;
+
+          letter-spacing: 0.18em;
+
+          text-transform: uppercase;
+
+          cursor: pointer;
+
+          overflow: hidden;
+
+          transition:
+            background 300ms ease,
+            color 300ms ease,
+            box-shadow 300ms ease,
+            transform 300ms ease;
+        }
+
+        .contact-submit:hover {
+          background: var(--green-dark);
+
+          border-color: var(--green-dark);
+
+          box-shadow:
+            0 15px 35px
+            rgba(
+              31,
+              90,
+              75,
+              0.18
+            );
+
+          transform: translateY(-2px);
+        }
+
+        /* ====================================================
+           SOCIAL SECTION
+        ==================================================== */
+
+        .contact-social {
+          margin-top: 75px;
+
+          text-align: center;
+        }
+
+        .contact-social-label {
+          display: flex;
+
+          align-items: center;
+
+          justify-content: center;
+
+          gap: 12px;
+
+          margin-bottom: 28px;
+
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 8px;
+
+          letter-spacing: 0.2em;
+
+          color: var(--muted);
+        }
+
+        .contact-social-line {
+          width: 30px;
+
+          height: 1px;
+
+          background: var(--line);
+        }
+
+        .contact-social-links {
+          display: flex;
+
+          justify-content: center;
+
+          gap: 12px;
+
+          flex-wrap: wrap;
+        }
+
+        .contact-social-link {
+          position: relative;
+
+          width: 48px;
+
+          height: 48px;
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: center;
+
+          background:
+            rgba(
+              252,
+              255,
+              253,
+              0.7
+            );
+
+          border:
+            1px solid
+            var(--line);
+
+          color: var(--text);
+
+          text-decoration: none;
+
+          font-size: 19px;
+
+          transition:
+            transform 300ms ease,
+            border-color 300ms ease,
+            background 300ms ease,
+            box-shadow 300ms ease;
+        }
+
+        .contact-social-link:hover {
+          transform:
+            translateY(-5px);
+
+          border-color:
+            var(--green);
+
+          background:
+            var(--green-light);
+
+          box-shadow:
+            0 12px 30px
+            rgba(
+              31,
+              90,
+              75,
+              0.1
+            );
+        }
+
+        /* ====================================================
+           TOOLTIP
+        ==================================================== */
+
+        .contact-tooltip {
+          position: absolute;
+
+          bottom: calc(100% + 10px);
+
+          left: 50%;
+
+          transform:
+            translateX(-50%)
+            translateY(5px);
+
+          padding:
+            6px 9px;
+
+          background:
+            var(--green-dark);
+
+          color: white;
+
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 7px;
+
+          letter-spacing: 0.08em;
+
+          white-space: nowrap;
+
+          opacity: 0;
+
+          pointer-events: none;
+
+          transition:
+            opacity 200ms ease,
+            transform 200ms ease;
+        }
+
+        .contact-social-link:hover
+        .contact-tooltip {
+          opacity: 1;
+
+          transform:
+            translateX(-50%)
+            translateY(0);
+        }
+
+        /* ====================================================
+           BOTTOM STATEMENT
+        ==================================================== */
+
+        .contact-end {
+          margin-top: 90px;
+
+          text-align: center;
+        }
+
+        .contact-end-line {
+          width: 1px;
+
+          height: 55px;
+
+          margin: 0 auto 25px;
+
+          background:
+            linear-gradient(
+              to bottom,
+              var(--green),
+              transparent
+            );
+        }
+
+        .contact-end p {
+          margin: 0;
+
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 8px;
+
+          letter-spacing: 0.25em;
+
+          color: var(--muted);
+        }
+
+        /* ====================================================
+           MOBILE
+        ==================================================== */
+
+        @media (max-width: 800px) {
+
+          .contact-section {
+            padding:
+              120px 0 90px;
+          }
+
+          .contact-container {
+            width:
+              calc(
+                100% - 40px
+              );
+          }
+
+          .contact-header {
+            margin-bottom: 60px;
+          }
+
+          .contact-header h2 {
+            font-size: 4rem;
+          }
+
+          .contact-description {
+            max-width: 330px;
+          }
+
+          .contact-form-wrapper {
+            padding: 28px 22px;
+          }
+
+          .contact-row {
+            grid-template-columns: 1fr;
+
+            gap: 25px;
+          }
+
+          .contact-social {
+            margin-top: 60px;
+          }
+        }
+
+        /* ====================================================
+           SMALL MOBILE
+        ==================================================== */
+
+        @media (max-width: 480px) {
+
+          .contact-header h2 {
+            font-size: 3.5rem;
+          }
+
+          .contact-form-wrapper {
+            padding:
+              24px 18px;
+          }
+
+          .contact-field input,
+          .contact-field textarea {
+            padding:
+              13px 14px;
+          }
+
+          .contact-social-link {
+            width: 44px;
+            height: 44px;
+          }
+        }
+
+        /* ====================================================
+           REDUCED MOTION
+        ==================================================== */
+
+        @media (prefers-reduced-motion: reduce) {
+
+          .contact-social-link,
+          .contact-submit {
+            transition: none;
+          }
+        }
+      `}</style>
+
+      {/* ======================================================
+          BACKGROUND
+      ====================================================== */}
+
+      <div className="contact-grid" />
+
+      <div className="contact-glow contact-glow-one" />
+      <div className="contact-glow contact-glow-two" />
+
+      {/* ======================================================
+          CONTENT
+      ====================================================== */}
+
+      <div className="contact-container">
+        {/* ====================================================
+            HEADER
+        ==================================================== */}
+
+        <div ref={titleRef} className="contact-header">
+          <div className="contact-label">
+            <span className="contact-label-line" />
+            GET IN TOUCH
           </div>
-          <h2 className="text-5xl lg:text-6xl font-bold text-white mt-6 leading-tight">
-            Let's Work
-            <span className="block bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Together
-            </span>
+
+          <h2>
+            LET'S WORK
+            <span>TOGETHER.</span>
           </h2>
-          <p className="text-xl text-gray-400 mt-6 max-w-2xl mx-auto">
-            Have a project in mind? Let's collaborate and create something
-            amazing together.
+
+          <p className="contact-description">
+            Have a project in mind? Let's collaborate and turn your ideas into
+            thoughtful, scalable digital experiences.
           </p>
         </div>
 
-        {/* Contact Form */}
-        <div
-          ref={formRef}
-          className="rounded-2xl border border-purple-500/30 bg-gradient-to-br from-slate-800/40 via-slate-900/60 to-slate-950/80 backdrop-blur-xl p-8 md:p-12"
-        >
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Name & Email Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-2">
-                  Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="Your name"
-                  className="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-purple-500/20 text-white placeholder-gray-500 focus:border-purple-500/60 focus:outline-none transition-colors duration-300"
-                  required
-                />
+        {/* ====================================================
+            FORM
+        ==================================================== */}
+
+        <div ref={formRef} className="contact-form-wrapper">
+          <form onSubmit={handleSubmit} className="contact-form">
+            {/* NAME + EMAIL */}
+
+            <div className="contact-row">
+              <div className="contact-field">
+                <label htmlFor="name">Name</label>
+
+                <input id="name" type="text" placeholder="Your name" required />
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-2">
-                  Email
-                </label>
+
+              <div className="contact-field">
+                <label htmlFor="email">Email</label>
+
                 <input
+                  id="email"
                   type="email"
                   placeholder="your.email@example.com"
-                  className="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-purple-500/20 text-white placeholder-gray-500 focus:border-purple-500/60 focus:outline-none transition-colors duration-300"
                   required
                 />
               </div>
             </div>
 
-            {/* Subject */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">
-                Subject
-              </label>
+            {/* SUBJECT */}
+
+            <div className="contact-field">
+              <label htmlFor="subject">Subject</label>
+
               <input
+                id="subject"
                 type="text"
                 placeholder="Project inquiry"
-                className="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-purple-500/20 text-white placeholder-gray-500 focus:border-purple-500/60 focus:outline-none transition-colors duration-300"
                 required
               />
             </div>
 
-            {/* Message */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">
-                Message
-              </label>
+            {/* MESSAGE */}
+
+            <div className="contact-field">
+              <label htmlFor="message">Message</label>
+
               <textarea
+                id="message"
                 placeholder="Tell me about your project..."
                 rows="6"
-                className="w-full px-4 py-3 rounded-lg bg-slate-900/50 border border-purple-500/20 text-white placeholder-gray-500 focus:border-purple-500/60 focus:outline-none transition-colors duration-300 resize-none"
                 required
               />
             </div>
 
-            {/* Submit Button */}
-            <div className="pt-4">
-              <button
-                type="submit"
-                className="w-full py-3 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold hover:shadow-lg hover:shadow-indigo-500/50 transition-all duration-300 transform hover:scale-105"
-              >
-                Send Message
+            {/* SUBMIT */}
+
+            <div className="contact-submit-wrapper">
+              <button type="submit" className="contact-submit">
+                Send Message →
               </button>
             </div>
           </form>
         </div>
 
-        {/* Social Links */}
-        <div className="mt-16 text-center">
-          <p className="text-gray-400 mb-8">Or reach out on social media</p>
-          <div className="flex justify-center gap-6">
-            {[
-              {
-                name: "GitHub",
-                icon: "🐙",
-                url: "https://github.com/kavindu-98",
-              },
-              {
-                name: "LinkedIn",
-                icon: "💼",
-                url: "https://linkedin.com/in/kavindu-abeykoon",
-              },
-              {
-                name: "Email",
-                icon: "✉️",
-                url: "mailto:kavinduumayanga058@gmail.com",
-              },
-              { name: "Phone", icon: "📱", url: "tel:0768510781" },
-            ].map((social, i) => (
+        {/* ====================================================
+            SOCIAL LINKS
+        ==================================================== */}
+
+        <div className="contact-social">
+          <div className="contact-social-label">
+            <span className="contact-social-line" />
+            OR REACH OUT DIRECTLY
+            <span className="contact-social-line" />
+          </div>
+
+          <div className="contact-social-links">
+            {socials.map((social) => (
               <a
-                key={i}
+                key={social.name}
                 href={social.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative w-12 h-12 rounded-full border border-purple-500/30 bg-slate-900/50 flex items-center justify-center text-2xl hover:border-purple-500/60 hover:bg-purple-500/10 transition-all duration-300 hover:scale-110"
+                className="contact-social-link"
               >
                 {social.icon}
-                <span className="absolute -top-10 left-1/2 transform -translate-x-1/2 text-xs bg-purple-600 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                  {social.name}
-                </span>
+
+                <span className="contact-tooltip">{social.name}</span>
               </a>
             ))}
           </div>
+        </div>
+
+        {/* ====================================================
+            END
+        ==================================================== */}
+
+        <div className="contact-end">
+          <div className="contact-end-line" />
+
+          <p>AVAILABLE FOR NEW PROJECTS.</p>
         </div>
       </div>
     </section>

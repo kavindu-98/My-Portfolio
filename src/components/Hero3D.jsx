@@ -3,955 +3,295 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import gsap from "gsap";
-import ScrollTrigger from "gsap/ScrollTrigger";
-import SplitText from "gsap/SplitText";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-gsap.registerPlugin(ScrollTrigger, SplitText);
-
-/* ============================================================
-   HERO 3D
-   Cinematic Software Engineer Portfolio
-   ============================================================ */
-
-const PALETTE = {
-  bg: "#F5F7F5",
-  bgDark: "#0B1714",
-  surface: "#DDE8E3",
-  line: "#A9BBB5",
-  accent: "#65C7AE",
-  accentBright: "#8BE8CF",
-  text: "#173B32",
-  darkText: "#07120F",
-  white: "#F7FFFC",
-};
+gsap.registerPlugin(ScrollTrigger);
 
 const PORTRAIT_SRC = "../../public/images/kavindu-portrait.png";
 
-const NAV = ["WORK", "ABOUT", "EXPERIENCE", "CONTACT"];
-
-const TECH_STACK = [
-  "REACT",
-  "NODE.JS",
-  "TYPESCRIPT",
-  "MYSQL",
-  "NEXT.JS",
-  "MONGODB",
-];
-
-const CHAPTERS = ["ARRIVAL", "DEPTH", "SYSTEM", "STACK", "ENGINEER", "WORK"];
-
-const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
-
-const progressBetween = (value, start, end) =>
-  clamp((value - start) / Math.max(end - start, 0.0001));
-
-const hex = (value) => parseInt(value.replace("#", ""), 16);
-
-/* ============================================================
-   Component
-   ============================================================ */
-
 const Hero3D = () => {
-  const containerRef = useRef(null);
+  const sectionRef = useRef(null);
   const canvasRef = useRef(null);
 
   const nameRef = useRef(null);
   const engineerRef = useRef(null);
   const systemRef = useRef(null);
+  const stackRef = useRef(null);
+  const workRef = useRef(null);
   const portraitRef = useRef(null);
-  const portraitWrapRef = useRef(null);
-  const gridRef = useRef(null);
-  const cursorRef = useRef(null);
 
-  const stateRef = useRef({
-    progress: 0,
-    mouseX: 0,
-    mouseY: 0,
+  const networkRef = useRef(null);
+  const cameraTarget = useRef({
+    x: 0,
+    y: 0,
+    z: 7,
   });
 
-  const [progress, setProgress] = useState(0);
-  const [loaded, setLoaded] = useState(false);
-  const [loadingText, setLoadingText] = useState("K / 01");
+  const rotationTarget = useRef({
+    x: 0,
+    y: 0,
+    z: 0,
+  });
 
-  const [activeChapter, setActiveChapter] = useState(0);
+  const mouse = useRef({
+    x: 0,
+    y: 0,
+  });
 
-  /* ============================================================
-     Loading
-     ============================================================ */
-
-  useEffect(() => {
-    const t1 = setTimeout(() => {
-      setLoadingText("INITIALIZING SYSTEM...");
-    }, 250);
-
-    const t2 = setTimeout(() => {
-      setLoadingText("LOADING EXPERIENCE...");
-    }, 480);
-
-    const t3 = setTimeout(() => {
-      setLoaded(true);
-    }, 850);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-    };
-  }, []);
+  const [ready, setReady] = useState(false);
 
   /* ============================================================
-     Hero Name Reveal
-     ============================================================ */
+     THREE.JS
+  ============================================================ */
 
   useEffect(() => {
-    if (!loaded || !nameRef.current) return;
+    if (!canvasRef.current) return;
 
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-
-    if (reduceMotion) return;
-
-    const split = new SplitText(nameRef.current, {
-      type: "lines,chars",
-      mask: "lines",
-    });
-
-    gsap.fromTo(
-      split.chars,
-      {
-        yPercent: 120,
-        opacity: 0,
-        rotateX: 70,
-      },
-      {
-        yPercent: 0,
-        opacity: 1,
-        rotateX: 0,
-        duration: 1.1,
-        stagger: 0.025,
-        ease: "power4.out",
-        delay: 0.1,
-      },
-    );
-
-    return () => {
-      split.revert();
-    };
-  }, [loaded]);
-
-  /* ============================================================
-     Progress UI
-     ============================================================ */
-
-  useEffect(() => {
-    let raf;
-
-    const update = () => {
-      setProgress(stateRef.current.progress);
-
-      const nextChapter = Math.min(
-        CHAPTERS.length - 1,
-        Math.floor(stateRef.current.progress * CHAPTERS.length),
-      );
-
-      setActiveChapter(nextChapter);
-
-      raf = requestAnimationFrame(update);
-    };
-
-    raf = requestAnimationFrame(update);
-
-    return () => cancelAnimationFrame(raf);
-  }, []);
-
-  /* ============================================================
-     Three.js Scene
-     ============================================================ */
-
-  useEffect(() => {
-    if (!canvasRef.current || !containerRef.current) return;
-
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-
-    const isMobile = window.innerWidth < 768;
-
-    /* ------------------------------------------------------------
-       Scene
-       ------------------------------------------------------------ */
+    const canvas = canvasRef.current;
 
     const scene = new THREE.Scene();
 
-    scene.background = new THREE.Color(hex(PALETTE.bg));
+    scene.background = new THREE.Color("#f5f8f6");
 
-    scene.fog = new THREE.Fog(
-      hex(PALETTE.bg),
-      isMobile ? 7 : 8,
-      isMobile ? 15 : 20,
-    );
-
-    /* ------------------------------------------------------------
-       Camera
-       ------------------------------------------------------------ */
+    /* Camera */
 
     const camera = new THREE.PerspectiveCamera(
-      38,
+      42,
       window.innerWidth / window.innerHeight,
       0.1,
       100,
     );
 
-    camera.position.set(0.1, 0.1, 8.2);
+    camera.position.set(0, 0, 7);
 
-    /* ------------------------------------------------------------
-       Renderer
-       ------------------------------------------------------------ */
+    /* Renderer */
 
     const renderer = new THREE.WebGLRenderer({
+      canvas,
       antialias: true,
       alpha: true,
       powerPreference: "high-performance",
     });
 
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.7));
 
-    renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio, isMobile ? 1.25 : 1.8),
-    );
+    renderer.setSize(window.innerWidth, window.innerHeight);
 
     renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    canvasRef.current.appendChild(renderer.domElement);
+    /* Light */
 
-    /* ------------------------------------------------------------
-       Lights
-       ------------------------------------------------------------ */
+    scene.add(new THREE.AmbientLight(0xffffff, 1.5));
 
-    const ambient = new THREE.AmbientLight(0xffffff, 1.1);
+    /* ==========================================================
+       MAIN NETWORK
+    ========================================================== */
 
-    scene.add(ambient);
+    const network = new THREE.Group();
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    network.position.set(1.55, 0, 0);
 
-    keyLight.position.set(5, 7, 8);
+    network.scale.set(1.1, 1.1, 1.1);
 
-    scene.add(keyLight);
+    scene.add(network);
 
-    const accentLight = new THREE.PointLight(hex(PALETTE.accent), 4, 15);
+    networkRef.current = network;
 
-    accentLight.position.set(-4, 1, 5);
+    /* ==========================================================
+       CORE
+    ========================================================== */
 
-    scene.add(accentLight);
+    const coreGeometry = new THREE.IcosahedronGeometry(1.55, 2);
 
-    const secondAccent = new THREE.PointLight(hex(PALETTE.accentBright), 2, 12);
-
-    secondAccent.position.set(4, -3, 3);
-
-    scene.add(secondAccent);
-
-    /* ============================================================
-       MAIN ENGINEERING SYSTEM
-       ============================================================ */
-
-    const system = new THREE.Group();
-
-    system.position.set(1.35, 0.05, 0);
-
-    system.rotation.set(
-      THREE.MathUtils.degToRad(8),
-      THREE.MathUtils.degToRad(-15),
-      THREE.MathUtils.degToRad(3),
-    );
-
-    scene.add(system);
-
-    /* ------------------------------------------------------------
-       Outer architecture
-       ------------------------------------------------------------ */
-
-    const outerGeometry = new THREE.IcosahedronGeometry(2.15, 1);
-
-    const outerEdges = new THREE.EdgesGeometry(outerGeometry);
-
-    const outerMaterial = new THREE.LineBasicMaterial({
-      color: hex(PALETTE.text),
+    const coreMaterial = new THREE.MeshBasicMaterial({
+      color: "#63dfcf",
+      wireframe: true,
       transparent: true,
-      opacity: 0.32,
-    });
-
-    const outerFrame = new THREE.LineSegments(outerEdges, outerMaterial);
-
-    system.add(outerFrame);
-
-    /* ------------------------------------------------------------
-       Mid architecture
-       ------------------------------------------------------------ */
-
-    const midGeometry = new THREE.IcosahedronGeometry(1.55, 1);
-
-    const midEdges = new THREE.EdgesGeometry(midGeometry);
-
-    const midMaterial = new THREE.LineBasicMaterial({
-      color: hex(PALETTE.accent),
-      transparent: true,
-      opacity: 0.6,
-    });
-
-    const midFrame = new THREE.LineSegments(midEdges, midMaterial);
-
-    system.add(midFrame);
-
-    /* ------------------------------------------------------------
-       Core
-       ------------------------------------------------------------ */
-
-    const coreGeometry = new THREE.IcosahedronGeometry(0.72, 2);
-
-    const coreMaterial = new THREE.MeshPhysicalMaterial({
-      color: hex(PALETTE.surface),
-      transparent: true,
-      opacity: 0.32,
-      roughness: 0.2,
-      metalness: 0.15,
-      transmission: 0.15,
+      opacity: 0.42,
     });
 
     const core = new THREE.Mesh(coreGeometry, coreMaterial);
 
-    system.add(core);
+    network.add(core);
 
-    /* ------------------------------------------------------------
-       Core ring
-       ------------------------------------------------------------ */
+    /* ==========================================================
+       INNER CORE
+    ========================================================== */
 
-    const ringGeometry = new THREE.TorusGeometry(1.25, 0.012, 8, 120);
+    const innerGeometry = new THREE.IcosahedronGeometry(1.02, 2);
 
-    const ringMaterial = new THREE.MeshBasicMaterial({
-      color: hex(PALETTE.accent),
+    const innerMaterial = new THREE.MeshBasicMaterial({
+      color: "#4ed6c3",
+      wireframe: true,
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.3,
     });
 
-    const ring1 = new THREE.Mesh(ringGeometry, ringMaterial);
+    const inner = new THREE.Mesh(innerGeometry, innerMaterial);
 
-    ring1.rotation.x = Math.PI / 2.3;
+    network.add(inner);
 
-    system.add(ring1);
+    /* ==========================================================
+       OUTER CORE
+    ========================================================== */
 
-    const ring2 = new THREE.Mesh(ringGeometry, ringMaterial.clone());
+    const outerGeometry = new THREE.IcosahedronGeometry(2.05, 1);
 
-    ring2.rotation.y = Math.PI / 2.8;
+    const outerMaterial = new THREE.MeshBasicMaterial({
+      color: "#718d88",
+      wireframe: true,
+      transparent: true,
+      opacity: 0.38,
+    });
 
-    ring2.scale.setScalar(0.82);
+    const outer = new THREE.Mesh(outerGeometry, outerMaterial);
 
-    system.add(ring2);
+    network.add(outer);
 
-    const ring3 = new THREE.Mesh(ringGeometry, ringMaterial.clone());
+    /* ==========================================================
+       NODES
+    ========================================================== */
 
-    ring3.rotation.z = Math.PI / 3;
+    const nodePositions = [];
 
-    ring3.scale.setScalar(0.64);
+    const nodeCount = 24;
 
-    system.add(ring3);
+    for (let i = 0; i < nodeCount; i++) {
+      const phi = Math.acos(-1 + (2 * i) / nodeCount);
 
-    /* ============================================================
-       UNIQUE VERTICES
-       ============================================================ */
+      const theta = Math.sqrt(nodeCount * Math.PI) * phi;
 
-    const sourcePosition = outerGeometry.attributes.position;
+      const radius = 1.75 + Math.sin(i * 2.2) * 0.1;
 
-    const uniqueVertices = [];
-    const vertexSet = new Set();
+      nodePositions.push(
+        new THREE.Vector3(
+          radius * Math.sin(phi) * Math.cos(theta),
 
-    for (let i = 0; i < sourcePosition.count; i++) {
-      const vector = new THREE.Vector3().fromBufferAttribute(sourcePosition, i);
+          radius * Math.sin(phi) * Math.sin(theta),
 
-      const key = vector
-        .toArray()
-        .map((v) => v.toFixed(2))
-        .join(",");
-
-      if (!vertexSet.has(key)) {
-        vertexSet.add(key);
-        uniqueVertices.push(vector);
-      }
+          radius * Math.cos(phi),
+        ),
+      );
     }
 
-    const selectedIndices = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18].filter(
-      (index) => index < uniqueVertices.length,
-    );
+    const nodes = new THREE.Group();
 
-    /* ============================================================
-       NODES
-       ============================================================ */
+    network.add(nodes);
 
-    const nodeGeometry = new THREE.SphereGeometry(
-      isMobile ? 0.065 : 0.085,
-      16,
-      16,
-    );
-
-    const nodes = [];
-
-    selectedIndices.forEach((index, nodeIndex) => {
-      const material = new THREE.MeshStandardMaterial({
-        color: hex(PALETTE.accentBright),
-        emissive: hex(PALETTE.accent),
-        emissiveIntensity: 1.8,
-        roughness: 0.25,
-      });
-
-      const node = new THREE.Mesh(nodeGeometry, material);
-
-      node.position.copy(uniqueVertices[index]);
-
-      node.userData = {
-        basePosition: node.position.clone(),
-        index: nodeIndex,
-      };
-
-      system.add(node);
-
-      nodes.push(node);
-    });
-
-    /* ============================================================
-       CONNECTIONS
-       ============================================================ */
-
-    const connectionGroup = new THREE.Group();
-
-    system.add(connectionGroup);
-
-    const connectionLines = [];
-
-    const connectionPairs = [
-      [0, 1],
-      [1, 2],
-      [2, 3],
-      [3, 4],
-      [4, 5],
-      [5, 6],
-      [6, 7],
-      [7, 8],
-      [8, 9],
-      [9, 0],
-      [0, 4],
-      [2, 7],
-      [3, 8],
-      [1, 6],
-    ];
-
-    connectionPairs.forEach(([a, b]) => {
-      if (!nodes[a] || !nodes[b]) return;
-
-      const geometry = new THREE.BufferGeometry();
-
-      const positions = new Float32Array([
-        nodes[a].position.x,
-        nodes[a].position.y,
-        nodes[a].position.z,
-
-        nodes[b].position.x,
-        nodes[b].position.y,
-        nodes[b].position.z,
-      ]);
-
-      geometry.setAttribute(
-        "position",
-        new THREE.BufferAttribute(positions, 3),
+    nodePositions.forEach((position, index) => {
+      const geometry = new THREE.SphereGeometry(
+        index % 4 === 0 ? 0.085 : 0.055,
+        12,
+        12,
       );
 
-      const material = new THREE.LineBasicMaterial({
-        color: hex(PALETTE.accent),
-        transparent: true,
-        opacity: 0,
+      const material = new THREE.MeshBasicMaterial({
+        color: index % 4 === 0 ? "#6ee9dc" : "#9ae8df",
       });
 
-      const line = new THREE.LineSegments(geometry, material);
+      const node = new THREE.Mesh(geometry, material);
 
-      connectionGroup.add(line);
+      node.position.copy(position);
 
-      connectionLines.push(line);
+      nodes.add(node);
     });
 
-    /* ============================================================
-       DATA STREAMS
-       ============================================================ */
+    /* ==========================================================
+       CONNECTIONS
+    ========================================================== */
 
-    const streamGroup = new THREE.Group();
+    const linePositions = [];
 
-    system.add(streamGroup);
+    for (let i = 0; i < nodePositions.length; i++) {
+      const current = nodePositions[i];
 
-    const streams = [];
+      const nearest = nodePositions
+        .map((point, index) => ({
+          index,
+          distance: current.distanceTo(point),
+        }))
+        .filter((item) => item.index !== i)
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 3);
 
-    for (let streamIndex = 0; streamIndex < 12; streamIndex++) {
-      const geometry = new THREE.BufferGeometry();
+      nearest.forEach((item) => {
+        if (item.index > i && item.distance < 1.5) {
+          const target = nodePositions[item.index];
 
-      const curve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(-1.8, Math.sin(streamIndex) * 0.7, 0),
+          linePositions.push(
+            current.x,
+            current.y,
+            current.z,
 
-        new THREE.Vector3(-0.7, Math.cos(streamIndex) * 1.2, 0.4),
-
-        new THREE.Vector3(0.3, Math.sin(streamIndex * 1.4), 0),
-
-        new THREE.Vector3(1.8, Math.cos(streamIndex) * 0.7, 0.2),
-      ]);
-
-      const points = curve.getPoints(40);
-
-      geometry.setFromPoints(points);
-
-      const material = new THREE.LineBasicMaterial({
-        color: hex(PALETTE.accent),
-        transparent: true,
-        opacity: 0,
+            target.x,
+            target.y,
+            target.z,
+          );
+        }
       });
-
-      const line = new THREE.Line(geometry, material);
-
-      line.visible = true;
-
-      streamGroup.add(line);
-
-      streams.push(line);
     }
 
-    /* ============================================================
-       FLOATING PARTICLES
-       ============================================================ */
+    const lineGeometry = new THREE.BufferGeometry();
 
-    const particleCount = isMobile ? 55 : 120;
-
-    const particlePositions = new Float32Array(particleCount * 3);
-
-    for (let i = 0; i < particleCount; i++) {
-      particlePositions[i * 3] = (Math.random() - 0.5) * 15;
-
-      particlePositions[i * 3 + 1] = (Math.random() - 0.5) * 10;
-
-      particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 12 - 2;
-    }
-
-    const particleGeometry = new THREE.BufferGeometry();
-
-    particleGeometry.setAttribute(
+    lineGeometry.setAttribute(
       "position",
-      new THREE.BufferAttribute(particlePositions, 3),
+      new THREE.Float32BufferAttribute(linePositions, 3),
     );
 
-    const particleMaterial = new THREE.PointsMaterial({
-      color: hex(PALETTE.line),
-      size: isMobile ? 0.025 : 0.035,
+    const lineMaterial = new THREE.LineBasicMaterial({
+      color: "#829a95",
       transparent: true,
-      opacity: 0.5,
-      sizeAttenuation: true,
+      opacity: 0.42,
     });
 
-    const particles = new THREE.Points(particleGeometry, particleMaterial);
+    const lines = new THREE.LineSegments(lineGeometry, lineMaterial);
 
-    scene.add(particles);
+    network.add(lines);
 
-    /* ============================================================
-       ENGINEERING GRID
-       ============================================================ */
+    /* ==========================================================
+       ORBIT RINGS
+    ========================================================== */
 
-    const gridGroup = new THREE.Group();
+    const createRing = (radius, rotation, opacity) => {
+      const geometry = new THREE.RingGeometry(radius, radius + 0.008, 128);
 
-    scene.add(gridGroup);
+      const material = new THREE.MeshBasicMaterial({
+        color: "#58dcca",
+        transparent: true,
+        opacity,
+        side: THREE.DoubleSide,
+      });
 
-    const gridMaterial = new THREE.LineBasicMaterial({
-      color: hex(PALETTE.line),
-      transparent: true,
-      opacity: 0.16,
-    });
+      const ring = new THREE.Mesh(geometry, material);
 
-    for (let i = -8; i <= 8; i++) {
-      const geometry = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(i * 0.65, -4, -2),
-        new THREE.Vector3(i * 0.65, 4, -2),
-      ]);
+      ring.rotation.set(rotation.x, rotation.y, rotation.z);
 
-      gridGroup.add(new THREE.Line(geometry, gridMaterial));
-    }
+      network.add(ring);
 
-    for (let i = -5; i <= 5; i++) {
-      const geometry = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(-6, i * 0.7, -2),
-        new THREE.Vector3(6, i * 0.7, -2),
-      ]);
+      return ring;
+    };
 
-      gridGroup.add(new THREE.Line(geometry, gridMaterial));
-    }
+    const ring1 = createRing(1.95, { x: 0.4, y: 0.8, z: 0.2 }, 0.2);
 
-    /* ============================================================
-       Mouse
-       ============================================================ */
+    const ring2 = createRing(2.1, { x: 1.2, y: 0.2, z: 0.8 }, 0.14);
+
+    const ring3 = createRing(1.55, { x: 0.8, y: 1.4, z: 0.5 }, 0.12);
+
+    /* ==========================================================
+       MOUSE
+    ========================================================== */
 
     const handleMouseMove = (event) => {
-      stateRef.current.mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.current.x = (event.clientX / window.innerWidth - 0.5) * 2;
 
-      stateRef.current.mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+      mouse.current.y = (event.clientY / window.innerHeight - 0.5) * 2;
     };
 
-    if (!reduceMotion) {
-      window.addEventListener("mousemove", handleMouseMove);
-    }
+    window.addEventListener("mousemove", handleMouseMove);
 
-    /* ============================================================
-       Scene animation state
-       ============================================================ */
-
-    const sceneState = {
-      cameraZ: 8.2,
-      cameraX: 0.1,
-      cameraY: 0.1,
-
-      systemX: 1.35,
-      systemY: 0.05,
-      systemScale: 1,
-
-      outerOpacity: 0.32,
-      midOpacity: 0.6,
-
-      connectionOpacity: 0,
-      streamOpacity: 0,
-
-      gridOpacity: 0.16,
-    };
-
-    /* ============================================================
-       Master Scroll Timeline
-       ============================================================ */
-
-    const master = gsap.timeline({
-      scrollTrigger: {
-        trigger: containerRef.current,
-        start: "top top",
-        end: "+=360%",
-        scrub: 0.8,
-        pin: true,
-        anticipatePin: 1,
-
-        onUpdate: (self) => {
-          stateRef.current.progress = self.progress;
-        },
-      },
-    });
-
-    /* ------------------------------------------------------------
-       CHAPTER 01
-       0 → 15%
-       ------------------------------------------------------------ */
-
-    master.to(
-      sceneState,
-      {
-        cameraZ: 7.2,
-        systemScale: 1.08,
-        duration: 1,
-        ease: "none",
-      },
-      0,
-    );
-
-    /* ------------------------------------------------------------
-       CHAPTER 02
-       15 → 35%
-       Camera enters system
-       ------------------------------------------------------------ */
-
-    master.to(
-      sceneState,
-      {
-        cameraZ: 4.6,
-        cameraX: -0.4,
-        cameraY: 0.2,
-        systemX: 0.8,
-        systemScale: 1.35,
-        duration: 2,
-        ease: "none",
-      },
-      1,
-    );
-
-    master.to(
-      system.rotation,
-      {
-        x: system.rotation.x + 0.35,
-        y: system.rotation.y + 1.4,
-        z: system.rotation.z + 0.15,
-        duration: 2,
-        ease: "none",
-      },
-      1,
-    );
-
-    master.to(
-      ring1.rotation,
-      {
-        z: Math.PI * 1.4,
-        duration: 2,
-        ease: "none",
-      },
-      1,
-    );
-
-    master.to(
-      ring2.rotation,
-      {
-        x: Math.PI * 1.7,
-        duration: 2,
-        ease: "none",
-      },
-      1,
-    );
-
-    /* ------------------------------------------------------------
-       CHAPTER 03
-       35 → 55%
-       Architecture comes alive
-       ------------------------------------------------------------ */
-
-    master.to(
-      sceneState,
-      {
-        cameraZ: 3.0,
-        cameraX: 0.5,
-        systemX: 0,
-        systemScale: 1.55,
-        connectionOpacity: 0.7,
-        streamOpacity: 0.3,
-        duration: 2,
-        ease: "none",
-      },
-      3,
-    );
-
-    master.to(
-      outerMaterial,
-      {
-        opacity: 0.12,
-        duration: 2,
-        ease: "none",
-      },
-      3,
-    );
-
-    master.to(
-      midMaterial,
-      {
-        opacity: 0.85,
-        duration: 2,
-        ease: "none",
-      },
-      3,
-    );
-
-    connectionLines.forEach((line, index) => {
-      master.to(
-        line.material,
-        {
-          opacity: 0.5,
-          duration: 0.35,
-          ease: "none",
-        },
-        3 + index * 0.08,
-      );
-    });
-
-    streams.forEach((stream, index) => {
-      master.to(
-        stream.material,
-        {
-          opacity: 0.15,
-          duration: 0.4,
-          ease: "none",
-        },
-        3.5 + index * 0.06,
-      );
-    });
-
-    /* ------------------------------------------------------------
-       CHAPTER 04
-       55 → 70%
-       Technology system
-       ------------------------------------------------------------ */
-
-    master.to(
-      sceneState,
-      {
-        cameraZ: 4.1,
-        cameraX: 1.2,
-        systemX: 1.8,
-        systemScale: 1.15,
-        duration: 1.5,
-        ease: "none",
-      },
-      5,
-    );
-
-    master.to(
-      ring3.rotation,
-      {
-        y: Math.PI * 2,
-        duration: 1.5,
-        ease: "none",
-      },
-      5,
-    );
-
-    /* ------------------------------------------------------------
-       CHAPTER 05
-       70 → 88%
-       Portrait reveal
-       ------------------------------------------------------------ */
-
-    master.to(
-      sceneState,
-      {
-        cameraZ: 5.3,
-        cameraX: 2.1,
-        cameraY: 0.1,
-        systemX: 2.7,
-        systemScale: 0.85,
-        duration: 1.8,
-        ease: "none",
-      },
-      6.5,
-    );
-
-    master.to(
-      system.rotation,
-      {
-        x: system.rotation.x - 0.2,
-        y: system.rotation.y + 0.7,
-        duration: 1.8,
-        ease: "none",
-      },
-      6.5,
-    );
-
-    /* ------------------------------------------------------------
-       CHAPTER 06
-       88 → 100%
-       Exit
-       ------------------------------------------------------------ */
-
-    master.to(
-      sceneState,
-      {
-        cameraZ: 10,
-        cameraX: 0,
-        cameraY: -0.4,
-        systemX: 5,
-        systemScale: 2.4,
-        duration: 1.5,
-        ease: "power2.inOut",
-      },
-      8.3,
-    );
-
-    master.to(
-      system.rotation,
-      {
-        x: system.rotation.x + 0.8,
-        y: system.rotation.y + 2.5,
-        z: system.rotation.z + 0.4,
-        duration: 1.5,
-        ease: "none",
-      },
-      8.3,
-    );
-
-    /* ============================================================
-       Render loop
-       ============================================================ */
-
-    const clock = new THREE.Clock();
-
-    let animationFrame;
-
-    const render = () => {
-      animationFrame = requestAnimationFrame(render);
-
-      const elapsed = clock.getElapsedTime();
-
-      const mouseX = stateRef.current.mouseX;
-
-      const mouseY = stateRef.current.mouseY;
-
-      if (!reduceMotion) {
-        /* Mouse camera */
-        camera.position.x +=
-          (sceneState.cameraX + mouseX * 0.18 - camera.position.x) * 0.045;
-
-        camera.position.y +=
-          (sceneState.cameraY + mouseY * 0.12 - camera.position.y) * 0.045;
-
-        /* Camera depth */
-        camera.position.z += (sceneState.cameraZ - camera.position.z) * 0.08;
-
-        /* System */
-        system.position.x += (sceneState.systemX - system.position.x) * 0.07;
-
-        system.position.y +=
-          (sceneState.systemY + mouseY * 0.08 - system.position.y) * 0.04;
-
-        system.scale.lerp(
-          new THREE.Vector3(
-            sceneState.systemScale,
-            sceneState.systemScale,
-            sceneState.systemScale,
-          ),
-          0.06,
-        );
-
-        /* Gentle idle movement */
-        system.rotation.x += Math.sin(elapsed * 0.35) * 0.0006;
-
-        system.rotation.z += Math.cos(elapsed * 0.25) * 0.0004;
-
-        /* Rings */
-        ring1.rotation.z += 0.0015;
-
-        ring2.rotation.x += 0.001;
-
-        ring3.rotation.y += 0.0018;
-
-        /* Core */
-        core.rotation.x += 0.0012;
-
-        core.rotation.y += 0.0018;
-
-        /* Nodes */
-        nodes.forEach((node, index) => {
-          const pulse = 1 + Math.sin(elapsed * 2 + index * 0.8) * 0.2;
-
-          node.scale.setScalar(pulse);
-        });
-
-        /* Particles */
-        particles.rotation.y += 0.0003;
-
-        particles.rotation.x += 0.00005;
-
-        /* Grid */
-        gridGroup.position.z = -2 + Math.sin(elapsed * 0.15) * 0.08;
-      }
-
-      camera.lookAt(system.position.x * 0.15, system.position.y, 0);
-
-      renderer.render(scene, camera);
-    };
-
-    render();
-
-    /* ============================================================
-       Resize
-       ============================================================ */
+    /* ==========================================================
+       RESIZE
+    ========================================================== */
 
     const handleResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
@@ -959,898 +299,1861 @@ const Hero3D = () => {
       camera.updateProjectionMatrix();
 
       renderer.setSize(window.innerWidth, window.innerHeight);
-
-      renderer.setPixelRatio(
-        Math.min(window.devicePixelRatio, window.innerWidth < 768 ? 1.25 : 1.8),
-      );
     };
 
     window.addEventListener("resize", handleResize);
 
-    /* ============================================================
-       Cleanup
-       ============================================================ */
+    /* ==========================================================
+       ANIMATION
+    ========================================================== */
+
+    const clock = new THREE.Clock();
+
+    let animationFrame;
+
+    const animate = () => {
+      animationFrame = requestAnimationFrame(animate);
+
+      const elapsed = clock.getElapsedTime();
+
+      /* Smooth rotation */
+
+      core.rotation.x += (rotationTarget.current.x - core.rotation.x) * 0.025;
+
+      core.rotation.y += (rotationTarget.current.y - core.rotation.y) * 0.025;
+
+      outer.rotation.x +=
+        (rotationTarget.current.x * 0.7 - outer.rotation.x) * 0.02;
+
+      outer.rotation.y +=
+        (rotationTarget.current.y * 0.7 - outer.rotation.y) * 0.02;
+
+      inner.rotation.x +=
+        (rotationTarget.current.x * 1.3 - inner.rotation.x) * 0.03;
+
+      inner.rotation.y +=
+        (rotationTarget.current.y * 1.3 - inner.rotation.y) * 0.03;
+
+      /* Organic movement */
+
+      core.rotation.z = Math.sin(elapsed * 0.25) * 0.04;
+
+      inner.rotation.z = Math.cos(elapsed * 0.2) * 0.05;
+
+      nodes.rotation.y = Math.sin(elapsed * 0.18) * 0.05;
+
+      /* Rings */
+
+      ring1.rotation.z += 0.0007;
+      ring2.rotation.x += 0.0005;
+      ring3.rotation.y += 0.0006;
+
+      /* Mouse parallax */
+
+      network.rotation.x +=
+        (mouse.current.y * -0.08 - network.rotation.x) * 0.025;
+
+      network.rotation.y +=
+        (mouse.current.x * 0.1 - network.rotation.y) * 0.025;
+
+      /* Camera */
+
+      camera.position.x +=
+        (cameraTarget.current.x + mouse.current.x * 0.15 - camera.position.x) *
+        0.035;
+
+      camera.position.y +=
+        (cameraTarget.current.y - mouse.current.y * 0.08 - camera.position.y) *
+        0.035;
+
+      camera.position.z += (cameraTarget.current.z - camera.position.z) * 0.035;
+
+      camera.lookAt(0, 0, 0);
+
+      renderer.render(scene, camera);
+    };
+
+    animate();
+
+    setReady(true);
+
+    /* ==========================================================
+       CLEANUP
+    ========================================================== */
 
     return () => {
+      cancelAnimationFrame(animationFrame);
+
       window.removeEventListener("mousemove", handleMouseMove);
 
       window.removeEventListener("resize", handleResize);
 
-      cancelAnimationFrame(animationFrame);
-
-      master.kill();
-
-      outerGeometry.dispose();
-      outerEdges.dispose();
-      outerMaterial.dispose();
-
-      midGeometry.dispose();
-      midEdges.dispose();
-      midMaterial.dispose();
-
       coreGeometry.dispose();
       coreMaterial.dispose();
 
-      ringGeometry.dispose();
-      ringMaterial.dispose();
+      innerGeometry.dispose();
+      innerMaterial.dispose();
 
-      nodeGeometry.dispose();
+      outerGeometry.dispose();
+      outerMaterial.dispose();
 
-      connectionLines.forEach((line) => {
-        line.geometry.dispose();
-        line.material.dispose();
-      });
-
-      streams.forEach((line) => {
-        line.geometry.dispose();
-        line.material.dispose();
-      });
-
-      particleGeometry.dispose();
-      particleMaterial.dispose();
-
-      gridMaterial.dispose();
+      lineGeometry.dispose();
+      lineMaterial.dispose();
 
       renderer.dispose();
 
-      if (
-        canvasRef.current &&
-        renderer.domElement.parentNode === canvasRef.current
-      ) {
-        canvasRef.current.removeChild(renderer.domElement);
-      }
+      scene.clear();
     };
   }, []);
 
   /* ============================================================
-     DOM Scroll Animation
-     ============================================================ */
+     GSAP SCROLL
+  ============================================================ */
 
   useEffect(() => {
-    if (!loaded) return;
-
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-
-    if (reduceMotion) return;
+    if (!ready) return;
 
     const ctx = gsap.context(() => {
-      const p = progress;
+      const name = nameRef.current;
+      const engineer = engineerRef.current;
+      const system = systemRef.current;
+      const stack = stackRef.current;
+      const work = workRef.current;
+      const portrait = portraitRef.current;
+      const network = networkRef.current;
 
-      /* --------------------------------------------------------
-         Hero title
-         -------------------------------------------------------- */
-
-      if (nameRef.current) {
-        const exit = progressBetween(p, 0.78, 1);
-
-        gsap.set(nameRef.current, {
-          y: -exit * 180,
-          scale: 1 - exit * 0.12,
-          opacity: 1 - exit,
-        });
+      if (
+        !name ||
+        !engineer ||
+        !system ||
+        !stack ||
+        !work ||
+        !portrait ||
+        !network
+      ) {
+        return;
       }
 
-      /* --------------------------------------------------------
-         Engineer title
-         -------------------------------------------------------- */
+      /* ========================================================
+         INITIAL STATES
+      ======================================================== */
 
-      if (engineerRef.current) {
-        const enter = progressBetween(p, 0.28, 0.43);
+      gsap.set(name, {
+        autoAlpha: 1,
+        y: 0,
+        scale: 1,
+        filter: "blur(0px)",
+      });
 
-        const leave = progressBetween(p, 0.55, 0.7);
+      gsap.set([engineer, system, stack, work], {
+        autoAlpha: 0,
+        y: 90,
+        scale: 0.96,
+        filter: "blur(10px)",
+      });
 
-        gsap.set(engineerRef.current, {
-          opacity: enter * (1 - leave),
-          y: (1 - enter) * 80 - leave * 80,
-          scale: 0.92 + enter * 0.08,
-        });
-      }
+      gsap.set(portrait, {
+        autoAlpha: 0,
+        x: 64,
+        scale: 1.05,
+        filter: "blur(16px)",
+      });
 
-      /* --------------------------------------------------------
-         System title
-         -------------------------------------------------------- */
+      /* ========================================================
+         MASTER TIMELINE
+      ======================================================== */
 
-      if (systemRef.current) {
-        const enter = progressBetween(p, 0.42, 0.56);
+      const timeline = gsap.timeline({
+        scrollTrigger: {
+          trigger: sectionRef.current,
 
-        const leave = progressBetween(p, 0.68, 0.78);
+          start: "top top",
 
-        gsap.set(systemRef.current, {
-          opacity: enter * (1 - leave),
-          y: (1 - enter) * 100 - leave * 80,
-          scale: 0.9 + enter * 0.1,
-        });
-      }
+          end: "+=500%",
 
-      /* --------------------------------------------------------
-         Portrait
-         -------------------------------------------------------- */
+          pin: true,
 
-      if (portraitWrapRef.current) {
-        const enter = progressBetween(p, 0.67, 0.83);
+          scrub: 1.4,
 
-        const exit = progressBetween(p, 0.88, 1);
+          anticipatePin: 1,
 
-        gsap.set(portraitWrapRef.current, {
-          clipPath: `inset(0 ${(1 - enter) * 100}% 0 0)`,
-          scale: 1.05 - enter * 0.05 + exit * 0.15,
-          opacity: enter * (1 - exit),
-        });
-      }
+          invalidateOnRefresh: true,
 
-      /* --------------------------------------------------------
-         Portrait image movement
-         -------------------------------------------------------- */
+          fastScrollEnd: true,
+        },
+      });
 
-      if (portraitRef.current) {
-        const imageMove = progressBetween(p, 0.67, 0.9);
+      /* ========================================================
+         01 — NAME
+      ======================================================== */
 
-        gsap.set(portraitRef.current, {
-          scale: 1.08 - imageMove * 0.08,
-          x: (1 - imageMove) * 80,
-        });
-      }
+      timeline.to(
+        {},
+        {
+          duration: 1,
+        },
+      );
 
-      /* --------------------------------------------------------
-         Grid
-         -------------------------------------------------------- */
+      /* ========================================================
+         EXIT NAME
+      ======================================================== */
 
-      if (gridRef.current) {
-        gsap.set(gridRef.current, {
-          opacity: 0.15 + p * 0.25,
-          scale: 1 + p * 0.1,
-        });
-      }
+      timeline.to(name, {
+        autoAlpha: 0,
+        y: -90,
+        scale: 0.95,
+        filter: "blur(10px)",
+        duration: 0.8,
+        ease: "power2.inOut",
+      });
+
+      /* ========================================================
+         02 — ENGINEER
+      ======================================================== */
+
+      timeline.fromTo(
+        engineer,
+        {
+          autoAlpha: 0,
+          y: 90,
+          scale: 0.94,
+          filter: "blur(12px)",
+        },
+        {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          filter: "blur(0px)",
+          duration: 1,
+          ease: "power3.out",
+        },
+        "<0.2",
+      );
+
+      /* Move 3D */
+
+      timeline.to(
+        network.position,
+        {
+          x: 0.4,
+          duration: 1.2,
+          ease: "power2.inOut",
+        },
+        "<",
+      );
+
+      /* Portrait enters — identity reveal, a beat behind the
+         headline so it reads as a considered arrival rather
+         than everything landing at once. */
+
+      timeline.fromTo(
+        portrait,
+        {
+          autoAlpha: 0,
+          x: 64,
+          scale: 1.05,
+          filter: "blur(16px)",
+        },
+        {
+          autoAlpha: 1,
+          x: 0,
+          scale: 1,
+          filter: "blur(0px)",
+          duration: 1.2,
+          ease: "power3.out",
+        },
+        "<0.15",
+      );
+
+      /* HOLD */
+
+      timeline.to(
+        {},
+        {
+          duration: 0.7,
+        },
+      );
+
+      /* ========================================================
+         EXIT ENGINEER
+      ======================================================== */
+
+      timeline.to(engineer, {
+        autoAlpha: 0,
+        y: -80,
+        scale: 0.96,
+        filter: "blur(9px)",
+        duration: 0.75,
+        ease: "power2.inOut",
+      });
+
+      /* ========================================================
+         03 — SYSTEM
+      ======================================================== */
+
+      timeline.fromTo(
+        system,
+        {
+          autoAlpha: 0,
+          y: 90,
+          scale: 0.94,
+          filter: "blur(12px)",
+        },
+        {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          filter: "blur(0px)",
+          duration: 1,
+          ease: "power3.out",
+        },
+        "<0.18",
+      );
+
+      /* Network grows */
+
+      timeline.to(
+        network.scale,
+        {
+          x: 1.25,
+          y: 1.25,
+          z: 1.25,
+          duration: 1.2,
+          ease: "power2.inOut",
+        },
+        "<",
+      );
+
+      /* Camera */
+
+      timeline.to(
+        cameraTarget.current,
+        {
+          z: 7.8,
+          duration: 1.2,
+          ease: "power2.inOut",
+        },
+        "<",
+      );
+
+      /* Portrait — quiet parallax drift, stays on screen */
+
+      timeline.to(
+        portrait,
+        {
+          x: -14,
+          duration: 1.2,
+          ease: "power2.inOut",
+        },
+        "<",
+      );
+
+      /* HOLD */
+
+      timeline.to(
+        {},
+        {
+          duration: 0.7,
+        },
+      );
+
+      /* ========================================================
+         EXIT SYSTEM
+      ======================================================== */
+
+      timeline.to(system, {
+        autoAlpha: 0,
+        y: -80,
+        scale: 0.96,
+        filter: "blur(9px)",
+        duration: 0.75,
+        ease: "power2.inOut",
+      });
+
+      /* ========================================================
+         04 — STACK
+      ======================================================== */
+
+      timeline.fromTo(
+        stack,
+        {
+          autoAlpha: 0,
+          y: 90,
+          scale: 0.94,
+          filter: "blur(12px)",
+        },
+        {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          filter: "blur(0px)",
+          duration: 1,
+          ease: "power3.out",
+        },
+        "<0.18",
+      );
+
+      /* 3D rotation */
+
+      timeline.to(
+        rotationTarget.current,
+        {
+          x: 0.3,
+          y: 1.2,
+          z: 0.1,
+          duration: 1.5,
+          ease: "none",
+        },
+        "<",
+      );
+
+      /* Camera */
+
+      timeline.to(
+        cameraTarget.current,
+        {
+          z: 6.7,
+          x: 0.1,
+          duration: 1.2,
+          ease: "power2.inOut",
+        },
+        "<",
+      );
+
+      /* Portrait settles back to center */
+
+      timeline.to(
+        portrait,
+        {
+          x: 0,
+          duration: 1.2,
+          ease: "power2.inOut",
+        },
+        "<",
+      );
+
+      /* HOLD */
+
+      timeline.to(
+        {},
+        {
+          duration: 0.75,
+        },
+      );
+
+      /* ========================================================
+         EXIT STACK — portrait leaves in the same breath so WORK
+         opens on a clean, uncluttered frame
+      ======================================================== */
+
+      timeline.to(stack, {
+        autoAlpha: 0,
+        y: -80,
+        scale: 0.96,
+        filter: "blur(9px)",
+        duration: 0.75,
+        ease: "power2.inOut",
+      });
+
+      timeline.to(
+        portrait,
+        {
+          autoAlpha: 0,
+          x: -48,
+          scale: 0.96,
+          filter: "blur(12px)",
+          duration: 0.75,
+          ease: "power2.inOut",
+        },
+        "<",
+      );
+
+      /* ========================================================
+         05 — WORK
+      ======================================================== */
+
+      timeline.fromTo(
+        work,
+        {
+          autoAlpha: 0,
+          y: 90,
+          scale: 0.94,
+          filter: "blur(12px)",
+        },
+        {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          filter: "blur(0px)",
+          duration: 1,
+          ease: "power3.out",
+        },
+        "<0.18",
+      );
+
+      /* 3D moves away */
+
+      timeline.to(
+        network.position,
+        {
+          x: 2.1,
+          duration: 1.3,
+          ease: "power3.inOut",
+        },
+        "<",
+      );
+
+      timeline.to(
+        network.scale,
+        {
+          x: 0.75,
+          y: 0.75,
+          z: 0.75,
+          duration: 1.3,
+          ease: "power3.inOut",
+        },
+        "<",
+      );
+
+      timeline.to(
+        cameraTarget.current,
+        {
+          z: 8.5,
+          x: -0.2,
+          duration: 1.2,
+          ease: "power2.inOut",
+        },
+        "<",
+      );
+
+      /* ========================================================
+         FINAL HOLD
+      ======================================================== */
+
+      timeline.to(
+        {},
+        {
+          duration: 1,
+        },
+      );
     });
 
-    return () => ctx.revert();
-  }, [progress, loaded]);
-
-  /* ============================================================
-     Magnetic Navigation
-     ============================================================ */
-
-  const handleMagneticMove = (event, element) => {
-    if (!element) return;
-
-    const rect = element.getBoundingClientRect();
-
-    const x = event.clientX - (rect.left + rect.width / 2);
-
-    const y = event.clientY - (rect.top + rect.height / 2);
-
-    gsap.to(element, {
-      x: x * 0.18,
-      y: y * 0.18,
-      duration: 0.35,
-      ease: "power3.out",
-    });
-  };
-
-  const resetMagnetic = (element) => {
-    if (!element) return;
-
-    gsap.to(element, {
-      x: 0,
-      y: 0,
-      duration: 0.5,
-      ease: "elastic.out(1, 0.4)",
-    });
-  };
-
-  /* ============================================================
-     Chapter Helpers
-     ============================================================ */
-
-  const chapterProgress = progress * CHAPTERS.length;
-
-  /* ============================================================
-     Render
-     ============================================================ */
+    return () => {
+      ctx.revert();
+    };
+  }, [ready]);
 
   return (
-    <section
-      ref={containerRef}
-      className="relative w-full h-screen overflow-hidden"
-      style={{
-        background: PALETTE.bg,
-        color: PALETTE.text,
-      }}
-    >
-      {/* ======================================================
-          LOADING
-      ====================================================== */}
+    <>
+      <style>{`
 
-      <div
-        className="absolute inset-0 z-[100] flex items-center justify-center"
-        style={{
-          background: PALETTE.bg,
-          opacity: loaded ? 0 : 1,
-          pointerEvents: loaded ? "none" : "auto",
-          transition: "opacity 500ms ease",
-        }}
-      >
-        <div className="flex flex-col items-center gap-4">
-          <div
-            className="font-mono text-[10px] tracking-[0.3em]"
-            style={{
-              color: PALETTE.text,
-            }}
-          >
-            {loadingText}
-          </div>
+        /* ======================================================
+           GLOBAL
+        ====================================================== */
 
-          <div
-            className="h-px w-24 overflow-hidden"
-            style={{
-              background: PALETTE.line,
-            }}
-          >
-            <div
-              className="h-full w-full origin-left"
-              style={{
-                background: PALETTE.accent,
-                transform: loaded ? "scaleX(1)" : "scaleX(0.7)",
-                transition: "transform 700ms ease",
-              }}
-            />
+        .hero3d {
+          position: relative;
+          width: 100%;
+          height: 100vh;
+          min-height: 700px;
+          overflow: hidden;
+          isolation: isolate;
+
+          background: #f5f8f6;
+          color: #123c35;
+        }
+
+        .hero3d *,
+        .hero3d *::before,
+        .hero3d *::after {
+          box-sizing: border-box;
+        }
+
+        /* ======================================================
+           CANVAS
+        ====================================================== */
+
+        .hero3d__canvas {
+          position: absolute;
+          inset: 0;
+
+          width: 100%;
+          height: 100%;
+
+          display: block;
+
+          z-index: 1;
+
+          pointer-events: none;
+        }
+
+        /* ======================================================
+           GRID
+        ====================================================== */
+
+        .hero3d__grid {
+          position: absolute;
+          inset: 0;
+
+          z-index: 0;
+
+          pointer-events: none;
+
+          opacity: 0.5;
+
+          background-image:
+            linear-gradient(
+              rgba(37, 100, 91, 0.07) 1px,
+              transparent 1px
+            ),
+            linear-gradient(
+              90deg,
+              rgba(37, 100, 91, 0.07) 1px,
+              transparent 1px
+            );
+
+          background-size: 72px 72px;
+
+          mask-image:
+            linear-gradient(
+              to bottom,
+              transparent,
+              black 12%,
+              black 88%,
+              transparent
+            );
+        }
+
+        /* ======================================================
+           NOISE
+        ====================================================== */
+
+        .hero3d__noise {
+          position: absolute;
+          inset: 0;
+
+          z-index: 15;
+
+          pointer-events: none;
+
+          opacity: 0.025;
+
+          background-image:
+            url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='.45'/%3E%3C/svg%3E");
+        }
+
+        /* ======================================================
+           PORTRAIT
+           A quiet, grayscale panel on the right. Soft feathered
+           edge instead of a hard line, one thin divider rule,
+           and a small caption — no color overlay on the photo.
+        ====================================================== */
+
+        .hero3d__portrait {
+          position: absolute;
+
+          top: 0;
+          right: 0;
+
+          width: 34%;
+          height: 100%;
+
+          z-index: 13;
+
+          overflow: hidden;
+
+          pointer-events: none;
+
+          -webkit-mask-image:
+            linear-gradient(
+              to right,
+              transparent 0%,
+              black 20%
+            );
+
+          mask-image:
+            linear-gradient(
+              to right,
+              transparent 0%,
+              black 20%
+            );
+
+          will-change: transform, opacity, filter;
+        }
+
+        .hero3d__portrait::before {
+          content: "";
+
+          position: absolute;
+
+          left: 0;
+          top: 20%;
+
+          width: 1px;
+          height: 60%;
+
+          background: rgba(23, 63, 56, 0.25);
+        }
+
+        .hero3d__portrait-image {
+          position: absolute;
+          inset: 0;
+
+          width: 100%;
+          height: 100%;
+
+          object-fit: cover;
+          object-position: top center;
+
+          filter:
+            grayscale(0.9)
+            contrast(1.05)
+            brightness(0.98);
+        }
+
+        .hero3d__portrait-scrim {
+          position: absolute;
+          inset: 0;
+
+          background:
+            linear-gradient(
+              180deg,
+              transparent 55%,
+              rgba(7, 18, 15, 0.82) 100%
+            );
+        }
+
+        .hero3d__portrait-scan {
+          position: absolute;
+
+          left: 0;
+          right: 0;
+
+          height: 1px;
+
+          background:
+            linear-gradient(
+              90deg,
+              transparent,
+              #8be8cf,
+              transparent
+            );
+
+          box-shadow: 0 0 16px rgba(139, 232, 207, 0.65);
+
+          animation: hero3dPortraitScan 7s ease-in-out infinite;
+        }
+
+        @keyframes hero3dPortraitScan {
+          0% {
+            top: 10%;
+            opacity: 0;
+          }
+          12% {
+            opacity: 0.75;
+          }
+          50% {
+            top: 86%;
+            opacity: 0.75;
+          }
+          62% {
+            opacity: 0;
+          }
+          100% {
+            top: 86%;
+            opacity: 0;
+          }
+        }
+
+        .hero3d__portrait-caption {
+          position: absolute;
+
+          right: 22px;
+          bottom: 28px;
+
+          text-align: right;
+        }
+
+        .hero3d__portrait-caption span {
+          display: block;
+
+          font-family: "IBM Plex Mono", monospace;
+
+          letter-spacing: 0.22em;
+
+          color: #f7fffc;
+        }
+
+        .hero3d__portrait-caption span:first-child {
+          font-size: 9px;
+          opacity: 0.85;
+        }
+
+        .hero3d__portrait-caption span:last-child {
+          margin-top: 6px;
+
+          font-size: 8px;
+
+          opacity: 0.55;
+        }
+
+        /* ======================================================
+           NAV
+        ====================================================== */
+
+        .hero3d__nav {
+          position: absolute;
+
+          top: 0;
+          left: 0;
+
+          width: 100%;
+
+          padding: 18px 24px;
+
+          display: flex;
+
+          align-items: center;
+          justify-content: space-between;
+
+          z-index: 30;
+
+          border-bottom:
+            1px solid
+            rgba(26, 72, 64, 0.08);
+        }
+
+        .hero3d__logo {
+          font-family:
+            "IBM Plex Mono",
+            "Courier New",
+            monospace;
+
+          font-size: 11px;
+
+          font-weight: 500;
+
+          letter-spacing: 0.22em;
+
+          color: #183f38;
+        }
+
+        .hero3d__logo span {
+          margin-left: 7px;
+          opacity: 0.5;
+        }
+
+        .hero3d__nav nav {
+          display: flex;
+          gap: 32px;
+        }
+
+        .hero3d__nav a {
+          position: relative;
+
+          color: #173e37;
+
+          text-decoration: none;
+
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 9px;
+
+          letter-spacing: 0.2em;
+
+          transition: opacity 250ms ease;
+        }
+
+        .hero3d__nav a::after {
+          content: "";
+
+          position: absolute;
+
+          left: 0;
+          bottom: -6px;
+
+          width: 0;
+          height: 1px;
+
+          background: #65dcca;
+
+          transition:
+            width 350ms
+            cubic-bezier(
+              0.16,
+              1,
+              0.3,
+              1
+            );
+        }
+
+        .hero3d__nav a:hover {
+          opacity: 0.6;
+        }
+
+        .hero3d__nav a:hover::after {
+          width: 100%;
+        }
+
+        /* ======================================================
+           STATUS
+        ====================================================== */
+
+        .hero3d__status {
+          position: absolute;
+
+          top: 76px;
+          left: 24px;
+
+          z-index: 30;
+
+          display: flex;
+          align-items: center;
+
+          gap: 9px;
+
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 9px;
+
+          letter-spacing: 0.19em;
+
+          color:
+            rgba(36, 76, 69, 0.62);
+        }
+
+        .hero3d__status-dot {
+          width: 6px;
+          height: 6px;
+
+          flex-shrink: 0;
+
+          border-radius: 50%;
+
+          background: #78dbc9;
+
+          box-shadow:
+            0 0 14px
+            rgba(120, 219, 201, 0.8);
+        }
+
+        /* ======================================================
+           CONTENT
+        ====================================================== */
+
+        .hero3d__content {
+          position: absolute;
+          inset: 0;
+
+          z-index: 10;
+
+          pointer-events: none;
+        }
+
+        /* ======================================================
+           CHAPTER
+        ====================================================== */
+
+        .hero3d__chapter {
+          position: absolute;
+
+          top: 50%;
+          left: 24px;
+
+          width: min(720px, 58vw);
+
+          transform:
+            translateY(-50%);
+
+          will-change:
+            transform,
+            opacity,
+            filter;
+        }
+
+        /* ======================================================
+           NAME
+        ====================================================== */
+
+        .hero3d__chapter--name {
+          top: 56%;
+        }
+
+        .hero3d__eyebrow {
+          margin-bottom: 24px;
+
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 10px;
+
+          letter-spacing: 0.3em;
+
+          color: #55cbb8;
+        }
+
+        .hero3d__eyebrow span {
+          margin: 0 8px;
+          opacity: 0.5;
+        }
+
+        .hero3d__chapter--name h1 {
+          margin: 0;
+
+          font-family:
+            "Inter",
+            "Arial Black",
+            sans-serif;
+
+          font-size:
+            clamp(
+              4rem,
+              7.5vw,
+              8rem
+            );
+
+          line-height: 0.78;
+
+          letter-spacing: -0.075em;
+
+          font-weight: 900;
+
+          color: #133f36;
+        }
+
+        .hero3d__chapter--name p {
+          margin-top: 30px;
+
+          font-family:
+            "Inter",
+            sans-serif;
+
+          font-size: 13px;
+
+          line-height: 1.6;
+
+          color:
+            rgba(25, 68, 61, 0.65);
+        }
+
+        /* ======================================================
+           ENGINEER
+        ====================================================== */
+
+        .hero3d__chapter--engineer {
+          left: 8%;
+
+          width: min(760px, 58vw);
+        }
+
+        .hero3d__chapter-number {
+          margin-bottom: 22px;
+
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 9px;
+
+          letter-spacing: 0.28em;
+
+          color: #62cdbb;
+        }
+
+        .hero3d__chapter--engineer h2,
+        .hero3d__chapter--system h2,
+        .hero3d__chapter--stack h2,
+        .hero3d__chapter--work h2 {
+          margin: 0;
+
+          font-family:
+            "Inter",
+            "Arial Black",
+            sans-serif;
+
+          font-weight: 900;
+
+          line-height: 0.82;
+
+          letter-spacing: -0.075em;
+
+          color: #173f37;
+        }
+
+        .hero3d__chapter--engineer h2 {
+          font-size:
+            clamp(
+              4rem,
+              6.6vw,
+              7.4rem
+            );
+        }
+
+        .hero3d__chapter-description {
+          margin-top: 35px;
+
+          display: flex;
+
+          align-items: flex-start;
+
+          gap: 16px;
+        }
+
+        .hero3d__chapter-description span {
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 26px;
+
+          color: #54cdbb;
+        }
+
+        .hero3d__chapter-description p {
+          margin: 3px 0 0;
+
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 9px;
+
+          line-height: 1.7;
+
+          letter-spacing: 0.18em;
+
+          color:
+            rgba(31, 74, 67, 0.65);
+        }
+
+        /* ======================================================
+           SYSTEM
+        ====================================================== */
+
+        .hero3d__chapter--system {
+          left: 10%;
+
+          width: min(650px, 50vw);
+        }
+
+        .hero3d__chapter--system h2 {
+          font-size:
+            clamp(
+              3.5rem,
+              6.3vw,
+              6.7rem
+            );
+        }
+
+        .hero3d__side-text {
+          position: absolute;
+
+          left: 110%;
+          bottom: 12px;
+
+          width: 120px;
+
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 8px;
+
+          line-height: 2;
+
+          letter-spacing: 0.22em;
+
+          color:
+            rgba(30, 75, 68, 0.48);
+        }
+
+        /* ======================================================
+           STACK
+        ====================================================== */
+
+        .hero3d__chapter--stack {
+          left: 8%;
+
+          width: min(760px, 56vw);
+        }
+
+        .hero3d__chapter--stack h2 {
+          font-size:
+            clamp(
+              3.7rem,
+              6.4vw,
+              7rem
+            );
+        }
+
+        .hero3d__tech-list {
+          margin-top: 35px;
+
+          display: flex;
+
+          flex-wrap: wrap;
+
+          gap: 8px;
+        }
+
+        .hero3d__tech-list span {
+          padding: 9px 13px;
+
+          border:
+            1px solid
+            rgba(47, 119, 107, 0.25);
+
+          border-radius: 100px;
+
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 8px;
+
+          letter-spacing: 0.14em;
+
+          color:
+            rgba(25, 76, 68, 0.72);
+
+          background:
+            rgba(255, 255, 255, 0.28);
+
+          backdrop-filter: blur(8px);
+        }
+
+        /* ======================================================
+           WORK
+        ====================================================== */
+
+        .hero3d__chapter--work {
+          left: 9%;
+
+          width: min(700px, 60vw);
+        }
+
+        .hero3d__chapter--work h2 {
+          font-size:
+            clamp(
+              4rem,
+              7vw,
+              7.5rem
+            );
+        }
+
+        .hero3d__chapter--work p {
+          margin-top: 28px;
+
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 10px;
+
+          line-height: 1.8;
+
+          letter-spacing: 0.15em;
+
+          color:
+            rgba(27, 73, 65, 0.62);
+        }
+
+        .hero3d__work-line {
+          margin-top: 34px;
+
+          display: flex;
+
+          align-items: center;
+
+          gap: 12px;
+
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 8px;
+
+          letter-spacing: 0.2em;
+
+          color:
+            rgba(27, 73, 65, 0.55);
+        }
+
+        .hero3d__work-line span {
+          width: 55px;
+
+          height: 1px;
+
+          background: #63d4c2;
+        }
+
+        /* ======================================================
+           3D LABELS
+           Kept clear of the portrait's 34% right column so they
+           never sit on top of the photo.
+        ====================================================== */
+
+        .hero3d__labels {
+          position: absolute;
+          inset: 0;
+
+          z-index: 12;
+
+          pointer-events: none;
+        }
+
+        .hero3d__label {
+          position: absolute;
+
+          display: flex;
+
+          align-items: center;
+
+          gap: 7px;
+
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 8px;
+
+          letter-spacing: 0.18em;
+
+          color:
+            rgba(31, 78, 70, 0.58);
+        }
+
+        .hero3d__label i {
+          width: 5px;
+          height: 5px;
+
+          border-radius: 50%;
+
+          background: #6adac9;
+        }
+
+        .hero3d__label--node {
+          top: 30%;
+          right: 44%;
+        }
+
+        .hero3d__label--react {
+          top: 43%;
+          right: 40%;
+        }
+
+        .hero3d__label--mysql {
+          top: 63%;
+          right: 46%;
+        }
+
+        .hero3d__label--api {
+          top: 70%;
+          right: 42%;
+        }
+
+        /* ======================================================
+           SCROLL
+        ====================================================== */
+
+        .hero3d__scroll {
+          position: absolute;
+
+          left: 23px;
+          bottom: 35px;
+
+          z-index: 30;
+
+          display: flex;
+
+          align-items: center;
+
+          gap: 12px;
+        }
+
+        .hero3d__scroll-line {
+          width: 1px;
+          height: 48px;
+
+          background:
+            linear-gradient(
+              to bottom,
+              #62d6c5,
+              transparent
+            );
+        }
+
+        .hero3d__scroll-text {
+          display: flex;
+
+          flex-direction: column;
+
+          gap: 3px;
+
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 8px;
+
+          letter-spacing: 0.2em;
+
+          color:
+            rgba(25, 69, 62, 0.7);
+        }
+
+        /* ======================================================
+           INDEX
+        ====================================================== */
+
+        .hero3d__index {
+          position: absolute;
+
+          right: 24px;
+          bottom: 30px;
+
+          z-index: 30;
+
+          display: flex;
+
+          gap: 13px;
+
+          font-family:
+            "IBM Plex Mono",
+            monospace;
+
+          font-size: 8px;
+
+          letter-spacing: 0.15em;
+
+          color:
+            rgba(30, 74, 67, 0.35);
+        }
+
+        .hero3d__index span:first-child {
+          color: #4ecab7;
+        }
+
+        /* ======================================================
+           TABLET
+        ====================================================== */
+
+        @media (max-width: 900px) {
+
+          .hero3d__chapter {
+            left: 28px !important;
+
+            width:
+              calc(100% - 56px);
+          }
+
+          .hero3d__side-text {
+            display: none;
+          }
+
+          .hero3d__portrait {
+            display: none;
+          }
+
+          .hero3d__label--node {
+            right: 10%;
+          }
+
+          .hero3d__label--mysql {
+            right: 8%;
+          }
+
+        }
+
+        /* ======================================================
+           MOBILE
+        ====================================================== */
+
+        @media (max-width: 640px) {
+
+          .hero3d {
+            min-height: 650px;
+          }
+
+          .hero3d__nav {
+            padding: 17px 18px;
+          }
+
+          .hero3d__nav nav {
+            display: none;
+          }
+
+          .hero3d__status {
+            top: 70px;
+
+            left: 18px;
+
+            max-width: 230px;
+
+            line-height: 1.6;
+          }
+
+          .hero3d__chapter {
+            left: 18px !important;
+
+            width:
+              calc(100% - 36px);
+          }
+
+          .hero3d__chapter--name {
+            top: 54%;
+          }
+
+          .hero3d__chapter--name h1 {
+            font-size:
+              clamp(
+                3.6rem,
+                18vw,
+                6rem
+              );
+          }
+
+          .hero3d__chapter--engineer h2 {
+            font-size:
+              clamp(
+                3.3rem,
+                15vw,
+                5.5rem
+              );
+          }
+
+          .hero3d__chapter--system h2 {
+            font-size:
+              clamp(
+                3rem,
+                14vw,
+                5rem
+              );
+          }
+
+          .hero3d__chapter--stack h2 {
+            font-size:
+              clamp(
+                3rem,
+                14vw,
+                5rem
+              );
+          }
+
+          .hero3d__chapter--work h2 {
+            font-size:
+              clamp(
+                3.5rem,
+                16vw,
+                5.5rem
+              );
+          }
+
+          .hero3d__labels {
+            display: none;
+          }
+
+          .hero3d__scroll {
+            left: 18px;
+            bottom: 22px;
+          }
+
+          .hero3d__index {
+            right: 18px;
+            bottom: 22px;
+          }
+
+        }
+
+      `}</style>
+
+      <section ref={sectionRef} className="hero3d">
+        {/* ====================================================
+            THREE.JS
+        ==================================================== */}
+
+        <canvas ref={canvasRef} className="hero3d__canvas" />
+
+        {/* Background */}
+
+        <div className="hero3d__grid" />
+
+        <div className="hero3d__noise" />
+
+        {/* ====================================================
+            PORTRAIT
+        ==================================================== */}
+
+        <div ref={portraitRef} className="hero3d__portrait">
+          <img
+            src={PORTRAIT_SRC}
+            alt="Kavindu Abeykoon"
+            className="hero3d__portrait-image"
+          />
+
+          <div className="hero3d__portrait-scrim" />
+
+          <div className="hero3d__portrait-scan" />
+
+          <div className="hero3d__portrait-caption">
+            <span>KAVINDU ABEYKOON</span>
+            <span>SOFTWARE ENGINEER / 2026</span>
           </div>
         </div>
-      </div>
 
-      {/* ======================================================
-          BACKGROUND GRID
-      ====================================================== */}
+        {/* ====================================================
+            NAV
+        ==================================================== */}
 
-      <div ref={gridRef} className="pointer-events-none absolute inset-0 z-[1]">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `
-              linear-gradient(
-                to right,
-                ${PALETTE.line} 1px,
-                transparent 1px
-              ),
-              linear-gradient(
-                to bottom,
-                ${PALETTE.line} 1px,
-                transparent 1px
-              )
-            `,
-            backgroundSize: "90px 90px",
-            maskImage:
-              "radial-gradient(circle at 65% 50%, black, transparent 72%)",
-            opacity: 0.22,
-          }}
-        />
-      </div>
-
-      {/* ======================================================
-          THREE.JS
-      ====================================================== */}
-
-      <div ref={canvasRef} className="absolute inset-0 z-[2]" />
-
-      {/* ======================================================
-          GRAIN
-      ====================================================== */}
-
-      <div
-        className="pointer-events-none absolute inset-0 z-[50]"
-        style={{
-          opacity: 0.045,
-          mixBlendMode: "multiply",
-          backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='.6'/%3E%3C/svg%3E\")",
-        }}
-      />
-
-      {/* ======================================================
-          TOP BORDER
-      ====================================================== */}
-
-      <div
-        className="absolute top-0 left-0 right-0 z-[60] border-t"
-        style={{
-          borderColor: PALETTE.line,
-          opacity: 0.7,
-        }}
-      />
-
-      {/* ======================================================
-          NAVIGATION
-      ====================================================== */}
-
-      <header className="absolute top-0 left-0 right-0 z-[70] flex items-start justify-between px-6 pt-6 md:px-10 md:pt-8">
-        <div
-          className="font-mono text-xs tracking-[0.18em]"
-          style={{
-            color: PALETTE.text,
-          }}
-        >
-          KAVINDU / 26
-        </div>
-
-        <nav className="hidden md:flex items-center gap-9">
-          {NAV.map((item) => (
-            <a
-              key={item}
-              href={`#${item.toLowerCase()}`}
-              className="group relative font-mono text-[10px] tracking-[0.2em]"
-              style={{
-                color: PALETTE.text,
-              }}
-              onMouseMove={(event) =>
-                handleMagneticMove(event, event.currentTarget)
-              }
-              onMouseLeave={(event) => resetMagnetic(event.currentTarget)}
-            >
-              {item}
-
-              <span
-                className="absolute -bottom-2 left-0 h-px w-0 transition-all duration-300 group-hover:w-full"
-                style={{
-                  background: PALETTE.accent,
-                }}
-              />
-
-              <span
-                className="absolute -right-3 top-1/2 h-1 w-1 -translate-y-1/2 rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                style={{
-                  background: PALETTE.accent,
-                }}
-              />
-            </a>
-          ))}
-        </nav>
-
-        <button
-          className="flex h-8 w-8 items-center justify-center rounded-full border md:hidden"
-          style={{
-            borderColor: PALETTE.line,
-            color: PALETTE.text,
-          }}
-          aria-label="Open menu"
-        >
-          <span className="font-mono text-xs">+</span>
-        </button>
-      </header>
-
-      {/* ======================================================
-          AVAILABILITY
-      ====================================================== */}
-
-      <div className="absolute left-6 top-20 z-[60] flex items-center gap-2 md:left-10 md:top-24">
-        <span
-          className="h-1.5 w-1.5 animate-pulse rounded-full"
-          style={{
-            background: PALETTE.accent,
-          }}
-        />
-
-        <span
-          className="font-mono text-[9px] tracking-[0.18em] md:text-[10px]"
-          style={{
-            color: PALETTE.text,
-            opacity: 0.65,
-          }}
-        >
-          AVAILABLE FOR SOFTWARE ENGINEERING OPPORTUNITIES
-        </span>
-      </div>
-
-      {/* ======================================================
-          MAIN HERO NAME
-      ====================================================== */}
-
-      <div
-        className="pointer-events-none absolute inset-0 z-[40] flex items-center px-6 md:px-10"
-        style={{
-          perspective: "1000px",
-        }}
-      >
-        <div className="relative w-full max-w-5xl">
-          <div
-            className="mb-5 font-mono text-[10px] tracking-[0.3em] md:text-xs"
-            style={{
-              color: PALETTE.accent,
-            }}
-          >
-            SOFTWARE ENGINEER
-            <span
-              style={{
-                opacity: 0.45,
-              }}
-            >
-              {" "}
-              ·{" "}
-            </span>
-            CREATIVE DEVELOPER
-          </div>
-
-          <h1
-            ref={nameRef}
-            className="font-sans font-semibold leading-[0.84] tracking-[-0.07em]"
-            style={{
-              color: PALETTE.text,
-              fontSize: "clamp(4rem, 9vw, 9.5rem)",
-            }}
-          >
+        <header className="hero3d__nav">
+          <div className="hero3d__logo">
             KAVINDU
-            <br />
-            ABEYKOON
-          </h1>
+            <span>/ 26</span>
+          </div>
 
-          <div className="mt-7 max-w-md">
-            <p
-              className="text-sm leading-relaxed md:text-base"
-              style={{
-                color: PALETTE.text,
-                opacity: 0.65,
-              }}
-            >
+          <nav>
+            <a href="#work">WORK</a>
+
+            <a href="#about">ABOUT</a>
+
+            <a href="#contact">CONTACT</a>
+          </nav>
+        </header>
+
+        {/* ====================================================
+            STATUS
+        ==================================================== */}
+
+        <div className="hero3d__status">
+          <span className="hero3d__status-dot" />
+          AVAILABLE FOR SOFTWARE ENGINEERING OPPORTUNITIES
+        </div>
+
+        {/* ====================================================
+            CONTENT
+        ==================================================== */}
+
+        <div className="hero3d__content">
+          {/* 01 */}
+
+          <div
+            ref={nameRef}
+            className="
+              hero3d__chapter
+              hero3d__chapter--name
+            "
+          >
+            <div className="hero3d__eyebrow">
+              SOFTWARE ENGINEER
+              <span>·</span>
+              CREATIVE DEVELOPER
+            </div>
+
+            <h1>
+              KAVINDU
+              <br />
+              ABEYKOON
+            </h1>
+
+            <p>
               Building thoughtful digital products,
               <br />
               from interfaces to scalable systems.
             </p>
           </div>
-        </div>
-      </div>
 
-      {/* ======================================================
-          ENGINEER STATEMENT
-      ====================================================== */}
+          {/* 02 */}
 
-      <div
-        ref={engineerRef}
-        className="pointer-events-none absolute inset-0 z-[45] flex items-center justify-center px-6 text-center"
-        style={{
-          opacity: 0,
-          transform: "translateY(80px) scale(.92)",
-        }}
-      >
-        <div>
           <div
-            className="mb-6 font-mono text-[10px] tracking-[0.35em]"
-            style={{
-              color: PALETTE.accent,
-            }}
+            ref={engineerRef}
+            className="
+              hero3d__chapter
+              hero3d__chapter--engineer
+            "
           >
-            CHAPTER / 03
+            <div className="hero3d__chapter-number">SYSTEM / 01</div>
+
+            <h2>
+              SOFTWARE
+              <br />
+              ENGINEER
+            </h2>
+
+            <div className="hero3d__chapter-description">
+              <span>03+</span>
+
+              <p>
+                YEARS BUILDING
+                <br />
+                PRODUCTION SYSTEMS
+              </p>
+            </div>
           </div>
 
-          <h2
-            className="font-sans font-semibold leading-[0.88] tracking-[-0.06em]"
-            style={{
-              color: PALETTE.text,
-              fontSize: "clamp(3.5rem, 8vw, 8rem)",
-            }}
-          >
-            SOFTWARE
-            <br />
-            ENGINEER
-          </h2>
-        </div>
-      </div>
+          {/* 03 */}
 
-      {/* ======================================================
-          DIGITAL SYSTEM STATEMENT
-      ====================================================== */}
-
-      <div
-        ref={systemRef}
-        className="pointer-events-none absolute inset-0 z-[46] flex items-center justify-start px-6 md:px-10"
-        style={{
-          opacity: 0,
-          transform: "translateY(100px) scale(.9)",
-        }}
-      >
-        <div>
           <div
-            className="mb-6 font-mono text-[10px] tracking-[0.35em]"
-            style={{
-              color: PALETTE.accent,
-            }}
+            ref={systemRef}
+            className="
+              hero3d__chapter
+              hero3d__chapter--system
+            "
           >
-            SYSTEM / 04
+            <div className="hero3d__chapter-number">SYSTEM / 02</div>
+
+            <h2>
+              I BUILD
+              <br />
+              DIGITAL
+              <br />
+              SYSTEMS
+            </h2>
+
+            <div className="hero3d__side-text">
+              ARCHITECTURE
+              <br />
+              INTERACTION
+              <br />
+              PERFORMANCE
+            </div>
           </div>
 
-          <h2
-            className="font-sans font-semibold leading-[0.88] tracking-[-0.06em]"
-            style={{
-              color: PALETTE.text,
-              fontSize: "clamp(3rem, 7vw, 7rem)",
-            }}
+          {/* 04 */}
+
+          <div
+            ref={stackRef}
+            className="
+              hero3d__chapter
+              hero3d__chapter--stack
+            "
           >
-            I BUILD
-            <br />
-            DIGITAL
-            <br />
-            SYSTEMS
-          </h2>
-        </div>
-      </div>
+            <div className="hero3d__chapter-number">SYSTEM / 03</div>
 
-      {/* ======================================================
-          TECH STACK
-      ====================================================== */}
+            <h2>
+              ENGINEERED
+              <br />
+              FOR SCALE
+            </h2>
 
-      <div className="pointer-events-none absolute inset-0 z-[48]">
-        {TECH_STACK.map((tech, index) => {
-          const positions = [
-            {
-              top: "18%",
-              right: "8%",
-            },
-            {
-              top: "31%",
-              right: "27%",
-            },
-            {
-              top: "47%",
-              right: "8%",
-            },
-            {
-              top: "62%",
-              right: "25%",
-            },
-            {
-              top: "74%",
-              right: "8%",
-            },
-            {
-              top: "84%",
-              right: "28%",
-            },
-          ];
-
-          const position = positions[index];
-
-          const techProgress = progressBetween(
-            progress,
-            0.51 + index * 0.018,
-            0.58 + index * 0.018,
-          );
-
-          return (
-            <div
-              key={tech}
-              className="absolute hidden md:flex items-center gap-2"
-              style={{
-                top: position.top,
-                right: position.right,
-                opacity: techProgress,
-                transform: `translateY(${(1 - techProgress) * 20}px)`,
-              }}
-            >
-              <span
-                className="h-1.5 w-1.5 rounded-full"
-                style={{
-                  background: PALETTE.accent,
-                  boxShadow: `0 0 12px ${PALETTE.accent}`,
-                }}
-              />
-
-              <span
-                className="font-mono text-[9px] tracking-[0.22em]"
-                style={{
-                  color: PALETTE.text,
-                }}
-              >
-                {tech}
-              </span>
-
-              <span
-                className="h-px w-8"
-                style={{
-                  background: PALETTE.line,
-                }}
-              />
+            <div className="hero3d__tech-list">
+              <span>REACT</span>
+              <span>NODE.JS</span>
+              <span>MYSQL</span>
+              <span>TYPESCRIPT</span>
+              <span>NEXT.JS</span>
+              <span>DOCKER</span>
             </div>
-          );
-        })}
-      </div>
+          </div>
 
-      {/* ======================================================
-          PORTRAIT
-      ====================================================== */}
-
-      <div
-        ref={portraitWrapRef}
-        className="pointer-events-none absolute right-0 top-0 z-[30] hidden h-full w-[54%] overflow-hidden md:block"
-        style={{
-          clipPath: "inset(0 100% 0 0)",
-        }}
-      >
-        <div
-          ref={portraitRef}
-          className="relative h-full w-full"
-          style={{
-            transform: "scale(1.08) translateX(80px)",
-          }}
-        >
-          <img
-            src={PORTRAIT_SRC}
-            alt="Kavindu Abeykoon"
-            className="h-full w-full object-cover"
-            style={{
-              filter: "grayscale(1) contrast(1.12) brightness(.92)",
-            }}
-          />
+          {/* 05 */}
 
           <div
-            className="absolute inset-0"
-            style={{
-              background: `
-                linear-gradient(
-                  120deg,
-                  ${PALETTE.bg} 0%,
-                  transparent 45%
-                ),
-                linear-gradient(
-                  160deg,
-                  ${PALETTE.accent} 0%,
-                  ${PALETTE.text} 100%
-                )
-              `,
-              mixBlendMode: "multiply",
-              opacity: 0.75,
-            }}
-          />
+            ref={workRef}
+            className="
+              hero3d__chapter
+              hero3d__chapter--work
+            "
+          >
+            <div className="hero3d__chapter-number">SYSTEM / 04</div>
 
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `linear-gradient(
-                  180deg,
-                  transparent 55%,
-                  ${PALETTE.darkText} 100%
-                )`,
-              opacity: 0.35,
-            }}
-          />
+            <h2>
+              SELECTED
+              <br />
+              WORK
+            </h2>
 
-          {/* Scan line */}
+            <p>
+              Real products.
+              <br />
+              Real systems.
+              <br />
+              Real-world constraints.
+            </p>
 
-          <div
-            className="absolute left-0 right-0 h-px"
-            style={{
-              top: `${progress * 100}%`,
-              background: `linear-gradient(
-                  90deg,
-                  transparent,
-                  ${PALETTE.accentBright},
-                  transparent
-                )`,
-              boxShadow: `0 0 15px ${PALETTE.accent}`,
-            }}
-          />
-
-          {/* Portrait metadata */}
-
-          <div className="absolute bottom-10 right-8">
-            <div
-              className="font-mono text-[9px] tracking-[0.25em]"
-              style={{
-                color: PALETTE.white,
-                opacity: 0.8,
-              }}
-            >
-              KAVINDU ABeykoon
-            </div>
-
-            <div
-              className="mt-2 font-mono text-[8px] tracking-[0.18em]"
-              style={{
-                color: PALETTE.white,
-                opacity: 0.55,
-              }}
-            >
-              SOFTWARE ENGINEER / 2026
+            <div className="hero3d__work-line">
+              <span />
+              SCROLL TO EXPLORE
             </div>
           </div>
         </div>
-      </div>
 
-      {/* ======================================================
-          EXPERIENCE DATA
-      ====================================================== */}
+        {/* ====================================================
+            FLOATING TECH LABELS
+        ==================================================== */}
 
-      <div
-        className="pointer-events-none absolute bottom-24 left-6 z-[60] md:left-10"
-        style={{
-          opacity: progressBetween(progress, 0.7, 0.8),
-        }}
-      >
-        <div className="flex items-end gap-4">
-          <span
-            className="font-sans font-semibold leading-none tracking-[-0.06em]"
-            style={{
-              color: PALETTE.text,
-              fontSize: "clamp(3rem, 5vw, 5rem)",
-            }}
-          >
-            03+
-          </span>
-
-          <span
-            className="pb-1 font-mono text-[9px] leading-relaxed tracking-[0.18em]"
-            style={{
-              color: PALETTE.text,
-              opacity: 0.65,
-            }}
-          >
-            YEARS
-            <br />
-            ENGINEERING
-          </span>
-        </div>
-      </div>
-
-      {/* ======================================================
-          CHAPTER NAVIGATION
-      ====================================================== */}
-
-      <div className="absolute right-6 top-1/2 z-[70] hidden -translate-y-1/2 md:block">
-        <div className="flex flex-col gap-4">
-          {CHAPTERS.map((chapter, index) => {
-            const active = index === activeChapter;
-
-            return (
-              <div
-                key={chapter}
-                className="flex items-center justify-end gap-3"
-              >
-                <span
-                  className="font-mono text-[7px] tracking-[0.16em] transition-opacity duration-300"
-                  style={{
-                    color: PALETTE.text,
-                    opacity: active ? 0.8 : 0.25,
-                  }}
-                >
-                  {chapter}
-                </span>
-
-                <span
-                  className="h-px transition-all duration-300"
-                  style={{
-                    width: active ? 32 : 10,
-                    background: active ? PALETTE.accent : PALETTE.line,
-                  }}
-                />
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ======================================================
-          SCROLL INDICATOR
-      ====================================================== */}
-
-      <div className="absolute bottom-7 left-6 z-[70] flex items-end gap-3 md:left-10">
-        <div
-          className="relative h-12 w-px overflow-hidden"
-          style={{
-            background: PALETTE.line,
-          }}
-        >
+        <div className="hero3d__labels">
           <div
-            className="absolute bottom-0 left-0 w-full"
-            style={{
-              height: `${progress * 100}%`,
-              background: PALETTE.accent,
-              boxShadow: `0 0 8px ${PALETTE.accent}`,
-            }}
-          />
-        </div>
-
-        <div
-          className="font-mono text-[9px] leading-relaxed tracking-[0.2em]"
-          style={{
-            color: PALETTE.text,
-          }}
-        >
-          SCROLL
-          <br />
-          EXPLORE
-        </div>
-      </div>
-
-      {/* ======================================================
-          LOCATION
-      ====================================================== */}
-
-      <div className="absolute bottom-7 right-6 z-[70] md:right-10">
-        <div
-          className="font-mono text-[9px] tracking-[0.18em]"
-          style={{
-            color: PALETTE.text,
-            opacity: 0.55,
-          }}
-        >
-          SRI LANKA
-          <span
-            className="mx-2"
-            style={{
-              color: PALETTE.accent,
-            }}
+            className="
+              hero3d__label
+              hero3d__label--node
+            "
           >
-            /
-          </span>
-          2026
-        </div>
-      </div>
-
-      {/* ======================================================
-          BOTTOM BORDER
-      ====================================================== */}
-
-      <div
-        className="absolute bottom-0 left-0 right-0 z-[60] border-b"
-        style={{
-          borderColor: PALETTE.line,
-          opacity: 0.7,
-        }}
-      />
-
-      {/* ======================================================
-          EXIT TITLE
-      ====================================================== */}
-
-      <div
-        className="pointer-events-none absolute inset-0 z-[80] flex items-center justify-center"
-        style={{
-          opacity: progressBetween(progress, 0.9, 1),
-        }}
-      >
-        <div className="text-center">
-          <div
-            className="mb-5 font-mono text-[9px] tracking-[0.35em]"
-            style={{
-              color: PALETTE.accent,
-            }}
-          >
-            CHAPTER / 06
+            <i />
+            NODE.JS
           </div>
 
           <div
-            className="font-sans font-semibold tracking-[-0.06em]"
-            style={{
-              color: PALETTE.text,
-              fontSize: "clamp(3rem, 7vw, 7rem)",
-            }}
+            className="
+              hero3d__label
+              hero3d__label--react
+            "
           >
-            SELECTED
-            <br />
-            WORK
+            <i />
+            REACT
+          </div>
+
+          <div
+            className="
+              hero3d__label
+              hero3d__label--mysql
+            "
+          >
+            <i />
+            MYSQL
+          </div>
+
+          <div
+            className="
+              hero3d__label
+              hero3d__label--api
+            "
+          >
+            <i />
+            API
           </div>
         </div>
-      </div>
-    </section>
+
+        {/* ====================================================
+            SCROLL
+        ==================================================== */}
+
+        <div className="hero3d__scroll">
+          <div className="hero3d__scroll-line" />
+
+          <div className="hero3d__scroll-text">
+            <span>SCROLL</span>
+
+            <span>EXPLORE</span>
+          </div>
+        </div>
+
+        {/* ====================================================
+            INDEX
+        ==================================================== */}
+
+        <div className="hero3d__index">
+          <span>01</span>
+          <span>02</span>
+          <span>03</span>
+          <span>04</span>
+        </div>
+      </section>
+    </>
   );
 };
 
