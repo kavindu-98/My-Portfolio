@@ -39,6 +39,19 @@ const Hero3D = () => {
   });
 
   const [ready, setReady] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [loadingText, setLoadingText] = useState("K / 26");
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setLoadingText("INITIALIZING SYSTEM..."), 250);
+    const t2 = setTimeout(() => setLoadingText("LOADING EXPERIENCE..."), 480);
+    const t3 = setTimeout(() => setLoaded(true), 850);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, []);
 
   /* ============================================================
      THREE.JS
@@ -411,7 +424,7 @@ const Hero3D = () => {
   ============================================================ */
 
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || !loaded) return;
 
     const ctx = gsap.context(() => {
       const name = nameRef.current;
@@ -836,12 +849,17 @@ const Hero3D = () => {
           duration: 1,
         },
       );
-    });
+    }, sectionRef);
+
+    const refreshTimer = setTimeout(() => {
+      ScrollTrigger.refresh();
+    }, 100);
 
     return () => {
+      clearTimeout(refreshTimer);
       ctx.revert();
     };
-  }, [ready]);
+  }, [ready, loaded]);
 
   return (
     <>
@@ -1870,9 +1888,70 @@ const Hero3D = () => {
 
         }
 
+        .hero3d__loader {
+          position: absolute;
+          inset: 0;
+          z-index: 200;
+
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+
+          gap: 18px;
+
+          background: #f5f8f6;
+
+          transition: opacity 550ms ease;
+        }
+
+        .hero3d__loader-text {
+          font-family: "IBM Plex Mono", monospace;
+
+          font-size: 10px;
+          letter-spacing: 0.3em;
+
+          color: #173f37;
+        }
+
+        .hero3d__loader-track {
+          width: 96px;
+          height: 1px;
+
+          background: rgba(23, 63, 55, 0.15);
+
+          overflow: hidden;
+        }
+
+        .hero3d__loader-fill {
+          width: 100%;
+          height: 100%;
+
+          transform-origin: left;
+
+          background: #63d4c2;
+
+          transition: transform 700ms ease;
+        }
+
       `}</style>
 
       <section ref={sectionRef} className="hero3d">
+        <div
+          className="hero3d__loader"
+          style={{
+            opacity: loaded ? 0 : 1,
+            pointerEvents: loaded ? "none" : "auto",
+          }}
+        >
+          <div className="hero3d__loader-text">{loadingText}</div>
+          <div className="hero3d__loader-track">
+            <div
+              className="hero3d__loader-fill"
+              style={{ transform: loaded ? "scaleX(1)" : "scaleX(0.65)" }}
+            />
+          </div>
+        </div>
         {/* ====================================================
             THREE.JS
         ==================================================== */}

@@ -6,36 +6,51 @@ import ScrollTrigger from "gsap/ScrollTrigger";
 gsap.registerPlugin(ScrollTrigger);
 
 /**
- * Animate element in on scroll
+ * Animate element in on scroll — fade + rise + scale + blur.
+ * This is the SAME motion signature as Hero3D's chapter reveals
+ * and About's content/visual columns, so every section that uses
+ * this (Contact, and any future section) reads as one system
+ * instead of a patchwork of different entrance styles.
  */
 export const animateInOnScroll = (element, delay = 0) => {
   if (!element) return;
+
+  const reduceMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
+
+  if (reduceMotion) {
+    gsap.set(element, { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" });
+    return;
+  }
 
   gsap.fromTo(
     element,
     {
       opacity: 0,
       y: 50,
+      scale: 0.97,
+      filter: "blur(6px)",
     },
     {
       opacity: 1,
       y: 0,
-      duration: 0.8,
+      scale: 1,
+      filter: "blur(0px)",
+      duration: 0.9,
+      delay,
       ease: "power3.out",
       scrollTrigger: {
         trigger: element,
         start: "top 80%",
-        end: "top 50%",
-        scrub: false,
-        markers: false,
+        toggleActions: "play none none reverse",
       },
-      delay,
     },
   );
 };
 
 /**
- * Parallax effect on scroll
+ * Parallax effect on scroll — unchanged.
  */
 export const createParallax = (element, speed = 0.5) => {
   if (!element) return;
@@ -48,23 +63,31 @@ export const createParallax = (element, speed = 0.5) => {
       start: "top bottom",
       end: "bottom top",
       scrub: 1,
-      markers: false,
     },
   });
 };
 
 /**
- * Stagger animation for multiple elements
+ * Stagger animation for multiple elements — same chapter language
+ * applied to a group, so lists (skills, highlights, cards) read
+ * consistently with single-element reveals.
  */
 export const staggerAnimateIn = (selector, staggerDelay = 0.1) => {
   const elements = document.querySelectorAll(selector);
+  if (!elements.length) return;
+
+  const reduceMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
+
+  if (reduceMotion) {
+    gsap.set(elements, { opacity: 1, y: 0 });
+    return;
+  }
 
   gsap.fromTo(
     elements,
-    {
-      opacity: 0,
-      y: 30,
-    },
+    { opacity: 0, y: 30 },
     {
       opacity: 1,
       y: 0,
@@ -74,16 +97,14 @@ export const staggerAnimateIn = (selector, staggerDelay = 0.1) => {
       scrollTrigger: {
         trigger: elements[0]?.parentElement,
         start: "top 75%",
-        end: "top 25%",
-        scrub: false,
-        markers: false,
+        toggleActions: "play none none reverse",
       },
     },
   );
 };
 
 /**
- * Rotate animation
+ * Continuous rotation — unchanged, used for wireframe/network motifs.
  */
 export const createRotation = (element, duration = 20) => {
   if (!element) return;
@@ -97,16 +118,17 @@ export const createRotation = (element, duration = 20) => {
 };
 
 /**
- * Glow pulse animation
+ * Glow pulse — recolored to the mint accent so it matches the
+ * rest of the site instead of the old indigo/purple values.
  */
 export const createGlowPulse = (element) => {
   if (!element) return;
 
   gsap.to(element, {
     boxShadow: [
-      "0 0 20px rgba(99, 102, 241, 0.5)",
-      "0 0 40px rgba(139, 92, 246, 0.8)",
-      "0 0 20px rgba(99, 102, 241, 0.5)",
+      "0 0 20px rgba(95, 214, 196, 0.35)",
+      "0 0 40px rgba(139, 232, 207, 0.55)",
+      "0 0 20px rgba(95, 214, 196, 0.35)",
     ],
     duration: 2,
     repeat: -1,
@@ -115,7 +137,9 @@ export const createGlowPulse = (element) => {
 };
 
 /**
- * Text reveal animation
+ * Character-by-character text reveal — unchanged. Prefer GSAP's
+ * SplitText plugin (already used in Hero3D/About) for new work;
+ * this remains as a dependency-free fallback.
  */
 export const createTextReveal = (element) => {
   if (!element) return;
@@ -146,17 +170,14 @@ export const createTextReveal = (element) => {
 };
 
 /**
- * Scale animation on scroll
+ * Scale-in on scroll — unchanged.
  */
 export const createScaleOnScroll = (element) => {
   if (!element) return;
 
   gsap.fromTo(
     element,
-    {
-      scale: 0.8,
-      opacity: 0,
-    },
+    { scale: 0.8, opacity: 0 },
     {
       scale: 1,
       opacity: 1,
@@ -165,9 +186,45 @@ export const createScaleOnScroll = (element) => {
       scrollTrigger: {
         trigger: element,
         start: "top 75%",
-        end: "top 25%",
-        scrub: false,
+        toggleActions: "play none none reverse",
       },
     },
   );
+};
+
+/**
+ * ============================================================
+ * CENTRALIZED REFRESH
+ *
+ * Hero3D, Projects, and Experience each independently call
+ * ScrollTrigger.refresh() on mount. Whichever one runs LAST wins
+ * and can invalidate measurements the others just made — a real
+ * source of mistimed/overlapping animations between sections.
+ *
+ * Delete every per-component `requestAnimationFrame(() =>
+ * ScrollTrigger.refresh())` call and call this ONCE from your
+ * top-level App component instead, after everything has mounted
+ * and images have had a chance to load (images changing size
+ * after load is the #1 cause of stale ScrollTrigger measurements).
+ * ============================================================
+ */
+export const refreshScrollTriggersOnce = () => {
+  const images = Array.from(document.images);
+
+  const waitForImages = Promise.all(
+    images.map((img) =>
+      img.complete
+        ? Promise.resolve()
+        : new Promise((resolve) => {
+            img.addEventListener("load", resolve, { once: true });
+            img.addEventListener("error", resolve, { once: true });
+          }),
+    ),
+  );
+
+  waitForImages.then(() => {
+    requestAnimationFrame(() => {
+      ScrollTrigger.refresh();
+    });
+  });
 };

@@ -380,10 +380,6 @@ const Experience = () => {
          Important when this section follows other
          ScrollTrigger sections.
       ====================================================== */
-
-      requestAnimationFrame(() => {
-        ScrollTrigger.refresh();
-      });
     }, section);
 
     return () => {
