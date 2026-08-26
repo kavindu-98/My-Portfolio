@@ -13,11 +13,7 @@ import { refreshScrollTriggersOnce } from "./utils/gsapAnimations";
 
 function App() {
   useEffect(() => {
-    const timer = setTimeout(() => {
-      refreshScrollTriggersOnce();
-    }, 100);
-
-    return () => clearTimeout(timer);
+    refreshScrollTriggersOnce();
   }, []);
 
   return (

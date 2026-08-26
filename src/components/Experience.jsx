@@ -17,7 +17,7 @@ const Experience = () => {
       number: "01",
       role: "Software Engineer",
       company: "Talentfort (Pvt) Ltd.",
-      period: "October 2025 — Present",
+      period: "October 2025 — August 2026",
       description:
         "Leading MERN stack architecture and refactoring enterprise systems. Mentoring junior developers and driving quality standards through code reviews.",
       highlights: [
@@ -86,18 +86,54 @@ const Experience = () => {
 
     const ctx = gsap.context(() => {
       /* ======================================================
-         INITIAL STATES
+         REDUCED MOTION
       ====================================================== */
 
-      gsap.set(items, {
-        opacity: 0.15,
-        y: 70,
-      });
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+
+      if (prefersReducedMotion) {
+        gsap.set(items, {
+          opacity: 1,
+        });
+
+        items.forEach((item) => {
+          const content = item.querySelector(".experience-content");
+          const dot = item.querySelector(".experience-dot");
+          const marker = item.querySelector(".experience-marker");
+          const highlights = item.querySelectorAll(".experience-highlight");
+
+          gsap.set(content, {
+            x: 0,
+            opacity: 1,
+          });
+
+          gsap.set(dot, {
+            scale: 1.2,
+            backgroundColor: "#5DB9A2",
+          });
+
+          gsap.set(marker, {
+            width: "calc(70px + 50%)",
+            opacity: 1,
+          });
+
+          gsap.set(highlights, {
+            opacity: 1,
+            x: 0,
+          });
+        });
+
+        gsap.set(progress, {
+          scaleY: 1,
+        });
+
+        return;
+      }
 
       /* ======================================================
-         TIMELINE PROGRESS
-         
-         The green line grows according to scroll position.
+         INITIAL TIMELINE STATE
       ====================================================== */
 
       gsap.set(progress, {
@@ -105,14 +141,23 @@ const Experience = () => {
         transformOrigin: "top center",
       });
 
+      /* ======================================================
+         TIMELINE PROGRESS
+         
+         The vertical green line grows with scrolling.
+      ====================================================== */
+
       gsap.to(progress, {
         scaleY: 1,
         ease: "none",
 
         scrollTrigger: {
           trigger: timeline,
+
           start: "top 70%",
+
           end: "bottom 70%",
+
           scrub: 1,
         },
       });
@@ -120,42 +165,106 @@ const Experience = () => {
       /* ======================================================
          EXPERIENCE ITEMS
          
-         Each experience activates one by one.
+         01 -> RIGHT -> CENTER
+         02 -> LEFT  -> CENTER
+         03 -> RIGHT -> CENTER
+         04 -> LEFT  -> CENTER
       ====================================================== */
 
       items.forEach((item, index) => {
         const content = item.querySelector(".experience-content");
-
         const dot = item.querySelector(".experience-dot");
-
         const year = item.querySelector(".experience-year");
-
         const marker = item.querySelector(".experience-marker");
-
         const highlightItems = item.querySelectorAll(".experience-highlight");
+
+        /*
+         * Even index:
+         * 0 = Experience 01 = RIGHT
+         * 2 = Experience 03 = RIGHT
+         *
+         * Odd index:
+         * 1 = Experience 02 = LEFT
+         * 3 = Experience 04 = LEFT
+         */
+        const isRight = index % 2 === 0;
+
+        /* ====================================================
+           INITIAL CARD POSITION
+        ==================================================== */
+
+        gsap.set(content, {
+          x: isRight ? 180 : -180,
+          opacity: 0,
+          scale: 0.97,
+        });
+
+        /* ====================================================
+           INITIAL DOT
+        ==================================================== */
+
+        gsap.set(dot, {
+          scale: 1,
+          backgroundColor: "rgba(31, 90, 75, 0.25)",
+          borderColor: "#f1f9f6",
+          boxShadow: "0 0 0 1px rgba(31, 90, 75, 0.12)",
+        });
+
+        /* ====================================================
+           INITIAL MARKER
+        ==================================================== */
+
+        gsap.set(marker, {
+          width: 0,
+          opacity: 0,
+        });
+
+        /* ====================================================
+           INITIAL HIGHLIGHTS
+        ==================================================== */
+
+        gsap.set(highlightItems, {
+          opacity: 0,
+          x: isRight ? 15 : -15,
+        });
+
+        /* ====================================================
+           ITEM SCROLL TIMELINE
+        ==================================================== */
 
         const itemTimeline = gsap.timeline({
           scrollTrigger: {
             trigger: item,
 
-            start: "top 72%",
-            end: "top 35%",
+            start: "top 75%",
 
-            scrub: 1.1,
+            end: "top 40%",
+
+            scrub: 1.2,
 
             invalidateOnRefresh: true,
           },
         });
 
-        /* ----------------------------------------------------
-           MAIN ITEM
-        ---------------------------------------------------- */
+        /* ====================================================
+           1. CARD MOVES TOWARD TIMELINE
+           
+           RIGHT CARD:
+           180px -> 0
+
+           LEFT CARD:
+           -180px -> 0
+        ==================================================== */
 
         itemTimeline.to(
-          item,
+          content,
           {
+            x: 0,
+
             opacity: 1,
-            y: 0,
+
+            scale: 1,
+
             duration: 1,
 
             ease: "power3.out",
@@ -163,14 +272,35 @@ const Experience = () => {
           0,
         );
 
-        /* ----------------------------------------------------
-           DOT
-        ---------------------------------------------------- */
+        /* ====================================================
+           2. CONNECTOR LINE GROWS
+        ==================================================== */
+
+        itemTimeline.to(
+          marker,
+          {
+            width: "calc(70px + 50%)",
+
+            opacity: 1,
+
+            duration: 0.85,
+
+            ease: "power3.out",
+          },
+          0.15,
+        );
+
+        /* ====================================================
+           3. DOT ACTIVATES
+           
+           This happens after the card has almost reached
+           the center timeline.
+        ==================================================== */
 
         itemTimeline.to(
           dot,
           {
-            scale: 1.35,
+            scale: 1.4,
 
             backgroundColor: "#5DB9A2",
 
@@ -179,114 +309,67 @@ const Experience = () => {
             boxShadow:
               "0 0 0 7px rgba(93,185,162,0.12), 0 0 28px rgba(93,185,162,0.35)",
 
-            duration: 0.6,
+            duration: 0.35,
 
             ease: "power3.out",
           },
-          0.15,
+          0.72,
         );
 
-        /* ----------------------------------------------------
-           MARKER
-        ---------------------------------------------------- */
-
-        itemTimeline.to(
-          marker,
-          {
-            width: "100%",
-
-            opacity: 1,
-
-            duration: 0.7,
-
-            ease: "power3.out",
-          },
-          0,
-        );
-
-        /* ----------------------------------------------------
-           YEAR
-        ---------------------------------------------------- */
+        /* ====================================================
+           4. YEAR ACTIVATION
+        ==================================================== */
 
         itemTimeline.to(
           year,
           {
             color: "#5DB9A2",
 
-            duration: 0.5,
-
-            ease: "power2.out",
-          },
-          0.15,
-        );
-
-        /* ----------------------------------------------------
-           HIGHLIGHTS
-        ---------------------------------------------------- */
-
-        if (highlightItems.length) {
-          itemTimeline.fromTo(
-            highlightItems,
-            {
-              opacity: 0,
-              x: -15,
-            },
-            {
-              opacity: 1,
-              x: 0,
-              stagger: 0.08,
-
-              duration: 0.4,
-
-              ease: "power2.out",
-            },
-            0.35,
-          );
-        }
-
-        /* ----------------------------------------------------
-           CONTENT MICRO MOVEMENT
-        ---------------------------------------------------- */
-
-        itemTimeline.to(
-          content,
-          {
-            x: 5,
-
-            duration: 0.5,
-
-            ease: "power2.out",
-          },
-          0.2,
-        );
-
-        itemTimeline.to(
-          content,
-          {
-            x: 0,
-
-            duration: 0.5,
+            duration: 0.35,
 
             ease: "power2.out",
           },
           0.7,
         );
 
-        /* ----------------------------------------------------
-           PREVIOUS ITEMS FADE SLIGHTLY
-        ---------------------------------------------------- */
+        /* ====================================================
+           5. HIGHLIGHTS APPEAR
+        ==================================================== */
+
+        if (highlightItems.length) {
+          itemTimeline.to(
+            highlightItems,
+            {
+              opacity: 1,
+
+              x: 0,
+
+              stagger: 0.08,
+
+              duration: 0.4,
+
+              ease: "power2.out",
+            },
+            0.76,
+          );
+        }
+
+        /* ====================================================
+           6. PREVIOUS ITEM BECOMES LESS PROMINENT
+        ==================================================== */
 
         if (index > 0) {
           const previousItem = items[index - 1];
 
           gsap.to(previousItem, {
-            opacity: 0.48,
+            opacity: 0.5,
 
             scrollTrigger: {
               trigger: item,
 
-              start: "top 65%",
-              end: "top 35%",
+              start: "top 62%",
+
+              end: "top 40%",
 
               scrub: 1,
 
@@ -307,10 +390,12 @@ const Experience = () => {
           header,
           {
             opacity: 0,
+
             y: 45,
           },
           {
             opacity: 1,
+
             y: 0,
 
             duration: 1,
@@ -344,6 +429,7 @@ const Experience = () => {
             trigger: section,
 
             start: "top bottom",
+
             end: "bottom top",
 
             scrub: 2,
@@ -367,6 +453,7 @@ const Experience = () => {
             trigger: section,
 
             start: "top bottom",
+
             end: "bottom top",
 
             scrub: 2,
@@ -377,9 +464,13 @@ const Experience = () => {
       /* ======================================================
          REFRESH
          
-         Important when this section follows other
-         ScrollTrigger sections.
+         Helps ScrollTrigger recalculate positions after
+         the section/layout has settled.
       ====================================================== */
+
+      requestAnimationFrame(() => {
+        ScrollTrigger.refresh();
+      });
     }, section);
 
     return () => {
@@ -407,13 +498,12 @@ const Experience = () => {
 
           --muted: #66877f;
 
-          --line:
-            rgba(
-              31,
-              90,
-              75,
-              0.13
-            );
+          --line: rgba(
+            31,
+            90,
+            75,
+            0.13
+          );
 
           position: relative;
 
@@ -421,11 +511,9 @@ const Experience = () => {
 
           min-height: 230vh;
 
-          background:
-            var(--bg);
+          background: var(--bg);
 
-          color:
-            var(--text);
+          color: var(--text);
 
           overflow: clip;
 
@@ -456,8 +544,7 @@ const Experience = () => {
               transparent 1px
             );
 
-          background-size:
-            70px 70px;
+          background-size: 70px 70px;
 
           mask-image:
             linear-gradient(
@@ -486,19 +573,16 @@ const Experience = () => {
 
           height: 76px;
 
-          padding:
-            0 5vw;
+          padding: 0 5vw;
 
           display: flex;
 
           align-items: center;
 
-          justify-content:
-            space-between;
+          justify-content: space-between;
 
           border-bottom:
-            1px solid
-            var(--line);
+            1px solid var(--line);
 
           font-family:
             "IBM Plex Mono",
@@ -516,8 +600,7 @@ const Experience = () => {
 
           font-size: 8px;
 
-          letter-spacing:
-            0.22em;
+          letter-spacing: 0.22em;
         }
 
         .experience-status {
@@ -527,8 +610,7 @@ const Experience = () => {
 
           border-radius: 50%;
 
-          background:
-            var(--green);
+          background: var(--green);
 
           box-shadow:
             0 0 0 5px
@@ -543,8 +625,7 @@ const Experience = () => {
         .experience-top-right {
           font-size: 8px;
 
-          letter-spacing:
-            0.15em;
+          letter-spacing: 0.15em;
 
           opacity: 0.35;
         }
@@ -556,14 +637,11 @@ const Experience = () => {
         .experience-header {
           position: relative;
 
-          max-width:
-            1200px;
+          max-width: 1200px;
 
-          margin:
-            0 auto;
+          margin: 0 auto;
 
-          padding:
-            150px 5vw 90px;
+          padding: 150px 5vw 90px;
 
           z-index: 5;
         }
@@ -583,11 +661,9 @@ const Experience = () => {
 
           font-size: 9px;
 
-          letter-spacing:
-            0.23em;
+          letter-spacing: 0.23em;
 
-          color:
-            var(--green);
+          color: var(--green);
         }
 
         .experience-label-line {
@@ -595,8 +671,7 @@ const Experience = () => {
 
           height: 1px;
 
-          background:
-            var(--green);
+          background: var(--green);
         }
 
         .experience-header h2 {
@@ -613,14 +688,11 @@ const Experience = () => {
               8rem
             );
 
-          line-height:
-            0.82;
+          line-height: 0.82;
 
-          letter-spacing:
-            -0.08em;
+          letter-spacing: -0.08em;
 
-          font-weight:
-            600;
+          font-weight: 600;
         }
 
         .experience-header h2 span {
@@ -636,8 +708,7 @@ const Experience = () => {
         }
 
         .experience-header-description {
-          max-width:
-            430px;
+          max-width: 430px;
 
           margin-top: 30px;
 
@@ -647,14 +718,11 @@ const Experience = () => {
 
           font-size: 9px;
 
-          line-height:
-            1.8;
+          line-height: 1.8;
 
-          letter-spacing:
-            0.04em;
+          letter-spacing: 0.04em;
 
-          color:
-            var(--muted);
+          color: var(--muted);
 
           opacity: 0.85;
         }
@@ -672,11 +740,9 @@ const Experience = () => {
               90%
             );
 
-          margin:
-            0 auto;
+          margin: 0 auto;
 
-          padding:
-            20px 0 160px;
+          padding: 20px 0 160px;
         }
 
         /* ====================================================
@@ -754,6 +820,10 @@ const Experience = () => {
 
         /* ====================================================
            EXPERIENCE ITEM
+           
+           IMPORTANT:
+           GSAP now controls the horizontal movement of
+           the content card.
         ==================================================== */
 
         .experience-item {
@@ -761,41 +831,24 @@ const Experience = () => {
 
           width: 100%;
 
-          min-height:
-            400px;
+          min-height: 400px;
 
           display: grid;
 
           grid-template-columns:
             1fr 1fr;
 
-          align-items:
-            center;
-
-          opacity: 0.15;
-
-          transform:
-            translateY(70px);
-
-          will-change:
-            transform,
-            opacity;
+          align-items: center;
 
           z-index: 3;
         }
 
-        .experience-item:nth-child(
-          odd
-        ) {
-          padding-right:
-            70px;
+        .experience-item:nth-child(odd) {
+          padding-right: 70px;
         }
 
-        .experience-item:nth-child(
-          even
-        ) {
-          padding-left:
-            70px;
+        .experience-item:nth-child(even) {
+          padding-left: 70px;
         }
 
         /* ====================================================
@@ -805,8 +858,7 @@ const Experience = () => {
         .experience-content {
           position: relative;
 
-          padding:
-            30px;
+          padding: 30px;
 
           background:
             rgba(
@@ -817,31 +869,27 @@ const Experience = () => {
             );
 
           border:
-            1px solid
-            var(--line);
+            1px solid var(--line);
 
           backdrop-filter:
             blur(12px);
 
+          will-change:
+            transform,
+            opacity;
+
           transition:
-            border-color
-              400ms ease,
-            background
-              400ms ease,
-            box-shadow
-              400ms ease;
+            border-color 400ms ease,
+            background 400ms ease,
+            box-shadow 400ms ease;
         }
 
-        .experience-item:nth-child(
-          odd
-        )
+        .experience-item:nth-child(odd)
         .experience-content {
           grid-column: 1;
         }
 
-        .experience-item:nth-child(
-          even
-        )
+        .experience-item:nth-child(even)
         .experience-content {
           grid-column: 2;
         }
@@ -890,11 +938,9 @@ const Experience = () => {
 
           font-size: 8px;
 
-          letter-spacing:
-            0.2em;
+          letter-spacing: 0.2em;
 
-          color:
-            var(--green);
+          color: var(--green);
 
           opacity: 0.65;
         }
@@ -906,8 +952,7 @@ const Experience = () => {
         .experience-year {
           display: inline-block;
 
-          margin-bottom:
-            20px;
+          margin-bottom: 35px;
 
           font-family:
             "IBM Plex Mono",
@@ -915,11 +960,9 @@ const Experience = () => {
 
           font-size: 8px;
 
-          letter-spacing:
-            0.17em;
+          letter-spacing: 0.17em;
 
-          color:
-            var(--muted);
+          color: var(--muted);
 
           transition:
             color 300ms ease;
@@ -943,14 +986,11 @@ const Experience = () => {
               3rem
             );
 
-          line-height:
-            0.95;
+          line-height: 0.95;
 
-          letter-spacing:
-            -0.06em;
+          letter-spacing: -0.06em;
 
-          font-weight:
-            600;
+          font-weight: 600;
         }
 
         /* ====================================================
@@ -966,11 +1006,9 @@ const Experience = () => {
 
           font-size: 9px;
 
-          letter-spacing:
-            0.08em;
+          letter-spacing: 0.08em;
 
-          color:
-            var(--green-dark);
+          color: var(--green-dark);
         }
 
         /* ====================================================
@@ -978,11 +1016,9 @@ const Experience = () => {
         ==================================================== */
 
         .experience-description {
-          max-width:
-            500px;
+          max-width: 500px;
 
-          margin:
-            23px 0;
+          margin: 23px 0;
 
           font-family:
             "Inter",
@@ -990,8 +1026,7 @@ const Experience = () => {
 
           font-size: 11px;
 
-          line-height:
-            1.75;
+          line-height: 1.75;
 
           color:
             rgba(
@@ -1015,8 +1050,7 @@ const Experience = () => {
 
           display: flex;
 
-          flex-direction:
-            column;
+          flex-direction: column;
 
           gap: 10px;
         }
@@ -1024,8 +1058,7 @@ const Experience = () => {
         .experience-highlight {
           display: flex;
 
-          align-items:
-            flex-start;
+          align-items: flex-start;
 
           gap: 10px;
 
@@ -1035,8 +1068,7 @@ const Experience = () => {
 
           font-size: 10px;
 
-          line-height:
-            1.5;
+          line-height: 1.5;
 
           color:
             rgba(
@@ -1060,8 +1092,7 @@ const Experience = () => {
 
           border-radius: 50%;
 
-          background:
-            var(--green);
+          background: var(--green);
         }
 
         /* ====================================================
@@ -1086,8 +1117,7 @@ const Experience = () => {
             );
 
           border:
-            3px solid
-            var(--bg);
+            3px solid var(--bg);
 
           border-radius: 50%;
 
@@ -1109,10 +1139,21 @@ const Experience = () => {
             );
 
           z-index: 10;
+
+          will-change:
+            transform,
+            background-color,
+            box-shadow;
         }
 
         /* ====================================================
            HORIZONTAL MARKER
+           
+           RIGHT CARD:
+           marker grows from timeline -> card
+
+           LEFT CARD:
+           marker grows from timeline -> card
         ==================================================== */
 
         .experience-marker {
@@ -1126,15 +1167,21 @@ const Experience = () => {
 
           opacity: 0;
 
-          background:
-            var(--green);
+          background: var(--green);
 
           z-index: 5;
+
+          box-shadow:
+            0 0 10px
+            rgba(
+              93,
+              185,
+              162,
+              0.3
+            );
         }
 
-        .experience-item:nth-child(
-          odd
-        )
+        .experience-item:nth-child(odd)
         .experience-marker {
           right: 50%;
 
@@ -1142,9 +1189,7 @@ const Experience = () => {
             right center;
         }
 
-        .experience-item:nth-child(
-          even
-        )
+        .experience-item:nth-child(even)
         .experience-marker {
           left: 50%;
 
@@ -1172,11 +1217,9 @@ const Experience = () => {
 
           font-size: 7px;
 
-          letter-spacing:
-            0.2em;
+          letter-spacing: 0.2em;
 
-          color:
-            var(--muted);
+          color: var(--muted);
 
           opacity: 0.35;
 
@@ -1190,14 +1233,11 @@ const Experience = () => {
         .experience-end {
           position: relative;
 
-          max-width:
-            1100px;
+          max-width: 1100px;
 
-          margin:
-            0 auto;
+          margin: 0 auto;
 
-          padding:
-            80px 5vw 140px;
+          padding: 80px 5vw 140px;
 
           text-align: center;
         }
@@ -1227,11 +1267,9 @@ const Experience = () => {
 
           font-size: 8px;
 
-          letter-spacing:
-            0.25em;
+          letter-spacing: 0.25em;
 
-          color:
-            var(--muted);
+          color: var(--muted);
         }
 
         /* ====================================================
@@ -1241,15 +1279,13 @@ const Experience = () => {
         @media (max-width: 800px) {
 
           .experience-section {
-            min-height:
-              260vh;
+            min-height: 260vh;
           }
 
           .experience-topbar {
             height: 65px;
 
-            padding:
-              0 20px;
+            padding: 0 20px;
           }
 
           .experience-top-right {
@@ -1262,13 +1298,11 @@ const Experience = () => {
           }
 
           .experience-header h2 {
-            font-size:
-              4rem;
+            font-size: 4rem;
           }
 
           .experience-header-description {
-            max-width:
-              320px;
+            max-width: 320px;
           }
 
           .experience-timeline {
@@ -1277,8 +1311,7 @@ const Experience = () => {
                 100% - 40px
               );
 
-            padding-bottom:
-              100px;
+            padding-bottom: 100px;
           }
 
           /* -----------------------------------------------
@@ -1292,9 +1325,12 @@ const Experience = () => {
               translateX(-50%);
           }
 
+          /* -----------------------------------------------
+             MOBILE ITEM
+          ----------------------------------------------- */
+
           .experience-item {
-            min-height:
-              auto;
+            min-height: auto;
 
             display: block;
 
@@ -1305,16 +1341,18 @@ const Experience = () => {
           .experience-content {
             width: 100%;
 
-            padding: 24px 20px;
+            padding:
+              24px 20px;
+
+            transform:
+              translateX(0) !important;
+
+            opacity: 1;
           }
 
-          .experience-item:nth-child(
-            odd
-          )
+          .experience-item:nth-child(odd)
           .experience-content,
-          .experience-item:nth-child(
-            even
-          )
+          .experience-item:nth-child(even)
           .experience-content {
             grid-column: auto;
           }
@@ -1352,18 +1390,20 @@ const Experience = () => {
           }
 
           .experience-role {
-            font-size:
-              2rem;
+            font-size: 2rem;
           }
 
           .experience-description {
-            font-size:
-              10px;
+            font-size: 10px;
           }
 
           .experience-highlight {
-            font-size:
-              9px;
+            font-size: 9px;
+
+            opacity: 1 !important;
+
+            transform:
+              translateX(0) !important;
           }
 
           .experience-side-text {
@@ -1383,8 +1423,7 @@ const Experience = () => {
         @media (max-width: 480px) {
 
           .experience-header h2 {
-            font-size:
-              3.5rem;
+            font-size: 3.5rem;
           }
 
           .experience-content {
@@ -1393,8 +1432,7 @@ const Experience = () => {
           }
 
           .experience-role {
-            font-size:
-              1.75rem;
+            font-size: 1.75rem;
           }
 
           .experience-number {
@@ -1409,7 +1447,7 @@ const Experience = () => {
 
         @media (prefers-reduced-motion: reduce) {
 
-          .experience-item {
+          .experience-content {
             opacity: 1 !important;
 
             transform:
@@ -1417,6 +1455,13 @@ const Experience = () => {
           }
 
           .experience-highlight {
+            opacity: 1 !important;
+
+            transform:
+              none !important;
+          }
+
+          .experience-marker {
             opacity: 1 !important;
           }
 

@@ -24,7 +24,7 @@
    * Projects now owns its own scroll space.
    * The stage remains sticky inside this section.
    */
-  min-height: 550vh;
+  min-height: 100vh;
 
   background: var(--bg);
   color: var(--deep);

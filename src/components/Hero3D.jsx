@@ -7,7 +7,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const PORTRAIT_SRC = "../../public/images/kavindu-portrait.png";
+const PORTRAIT_SRC = "/images/kavindu-portrait.png";
 
 const Hero3D = () => {
   const sectionRef = useRef(null);
@@ -21,6 +21,7 @@ const Hero3D = () => {
   const portraitRef = useRef(null);
 
   const networkRef = useRef(null);
+
   const cameraTarget = useRef({
     x: 0,
     y: 0,
@@ -42,10 +43,23 @@ const Hero3D = () => {
   const [loaded, setLoaded] = useState(false);
   const [loadingText, setLoadingText] = useState("K / 26");
 
+  /* ============================================================
+     LOADER
+  ============================================================ */
+
   useEffect(() => {
-    const t1 = setTimeout(() => setLoadingText("INITIALIZING SYSTEM..."), 250);
-    const t2 = setTimeout(() => setLoadingText("LOADING EXPERIENCE..."), 480);
-    const t3 = setTimeout(() => setLoaded(true), 850);
+    const t1 = setTimeout(() => {
+      setLoadingText("INITIALIZING SYSTEM...");
+    }, 250);
+
+    const t2 = setTimeout(() => {
+      setLoadingText("LOADING EXPERIENCE...");
+    }, 480);
+
+    const t3 = setTimeout(() => {
+      setLoaded(true);
+    }, 850);
+
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -58,7 +72,7 @@ const Hero3D = () => {
   ============================================================ */
 
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || !sectionRef.current) return;
 
     const canvas = canvasRef.current;
 
@@ -66,7 +80,9 @@ const Hero3D = () => {
 
     scene.background = new THREE.Color("#f5f8f6");
 
-    /* Camera */
+    /* ==========================================================
+       CAMERA
+    ========================================================== */
 
     const camera = new THREE.PerspectiveCamera(
       42,
@@ -77,7 +93,9 @@ const Hero3D = () => {
 
     camera.position.set(0, 0, 7);
 
-    /* Renderer */
+    /* ==========================================================
+       RENDERER
+    ========================================================== */
 
     const renderer = new THREE.WebGLRenderer({
       canvas,
@@ -88,11 +106,13 @@ const Hero3D = () => {
 
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.7));
 
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
 
     renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    /* Light */
+    /* ==========================================================
+       LIGHT
+    ========================================================== */
 
     scene.add(new THREE.AmbientLight(0xffffff, 1.5));
 
@@ -281,14 +301,46 @@ const Hero3D = () => {
 
       network.add(ring);
 
-      return ring;
+      return {
+        ring,
+        geometry,
+        material,
+      };
     };
 
-    const ring1 = createRing(1.95, { x: 0.4, y: 0.8, z: 0.2 }, 0.2);
+    const ring1Data = createRing(
+      1.95,
+      {
+        x: 0.4,
+        y: 0.8,
+        z: 0.2,
+      },
+      0.2,
+    );
 
-    const ring2 = createRing(2.1, { x: 1.2, y: 0.2, z: 0.8 }, 0.14);
+    const ring2Data = createRing(
+      2.1,
+      {
+        x: 1.2,
+        y: 0.2,
+        z: 0.8,
+      },
+      0.14,
+    );
 
-    const ring3 = createRing(1.55, { x: 0.8, y: 1.4, z: 0.5 }, 0.12);
+    const ring3Data = createRing(
+      1.55,
+      {
+        x: 0.8,
+        y: 1.4,
+        z: 0.5,
+      },
+      0.12,
+    );
+
+    const ring1 = ring1Data.ring;
+    const ring2 = ring2Data.ring;
+    const ring3 = ring3Data.ring;
 
     /* ==========================================================
        MOUSE
@@ -300,18 +352,32 @@ const Hero3D = () => {
       mouse.current.y = (event.clientY / window.innerHeight - 0.5) * 2;
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
 
     /* ==========================================================
        RESIZE
     ========================================================== */
 
     const handleResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
+      const width = window.innerWidth;
+
+      const height = window.innerHeight;
+
+      camera.aspect = width / height;
 
       camera.updateProjectionMatrix();
 
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setSize(width, height, false);
+
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.7));
+
+      /*
+       * Do NOT call ScrollTrigger.refresh()
+       * directly here.
+       *
+       * The centralized refresh system handles
+       * ScrollTrigger measurements.
+       */
     };
 
     window.addEventListener("resize", handleResize);
@@ -329,7 +395,7 @@ const Hero3D = () => {
 
       const elapsed = clock.getElapsedTime();
 
-      /* Smooth rotation */
+      /* Core */
 
       core.rotation.x += (rotationTarget.current.x - core.rotation.x) * 0.025;
 
@@ -413,26 +479,52 @@ const Hero3D = () => {
       lineGeometry.dispose();
       lineMaterial.dispose();
 
+      ring1Data.geometry.dispose();
+      ring1Data.material.dispose();
+
+      ring2Data.geometry.dispose();
+      ring2Data.material.dispose();
+
+      ring3Data.geometry.dispose();
+      ring3Data.material.dispose();
+
+      nodes.children.forEach((node) => {
+        node.geometry.dispose();
+        node.material.dispose();
+      });
+
       renderer.dispose();
 
       scene.clear();
+
+      networkRef.current = null;
     };
   }, []);
 
   /* ============================================================
-     GSAP SCROLL
+     HERO SCROLLTRIGGER
   ============================================================ */
 
   useEffect(() => {
-    if (!ready || !loaded) return;
+    if (!ready || !sectionRef.current) {
+      return;
+    }
+
+    const section = sectionRef.current;
 
     const ctx = gsap.context(() => {
       const name = nameRef.current;
+
       const engineer = engineerRef.current;
+
       const system = systemRef.current;
+
       const stack = stackRef.current;
+
       const work = workRef.current;
+
       const portrait = portraitRef.current;
+
       const network = networkRef.current;
 
       if (
@@ -444,6 +536,22 @@ const Hero3D = () => {
         !portrait ||
         !network
       ) {
+        return;
+      }
+
+      /* ========================================================
+         REDUCED MOTION
+      ======================================================== */
+
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+
+      if (reduceMotion) {
+        gsap.set([name, engineer, system, stack, work, portrait], {
+          clearProps: "all",
+        });
+
         return;
       }
 
@@ -473,12 +581,40 @@ const Hero3D = () => {
       });
 
       /* ========================================================
+         RESET THREE TARGETS
+      ======================================================== */
+
+      cameraTarget.current.x = 0;
+      cameraTarget.current.y = 0;
+      cameraTarget.current.z = 7;
+
+      rotationTarget.current.x = 0;
+      rotationTarget.current.y = 0;
+      rotationTarget.current.z = 0;
+
+      gsap.set(network.position, {
+        x: 1.55,
+        y: 0,
+        z: 0,
+      });
+
+      gsap.set(network.scale, {
+        x: 1.1,
+        y: 1.1,
+        z: 1.1,
+      });
+
+      /* ========================================================
          MASTER TIMELINE
       ======================================================== */
 
       const timeline = gsap.timeline({
+        defaults: {
+          overwrite: "auto",
+        },
+
         scrollTrigger: {
-          trigger: sectionRef.current,
+          trigger: section,
 
           start: "top top",
 
@@ -493,6 +629,10 @@ const Hero3D = () => {
           invalidateOnRefresh: true,
 
           fastScrollEnd: true,
+
+          pinSpacing: true,
+
+          refreshPriority: 100,
         },
       });
 
@@ -543,7 +683,7 @@ const Hero3D = () => {
         "<0.2",
       );
 
-      /* Move 3D */
+      /* 3D */
 
       timeline.to(
         network.position,
@@ -555,9 +695,7 @@ const Hero3D = () => {
         "<",
       );
 
-      /* Portrait enters — identity reveal, a beat behind the
-         headline so it reads as a considered arrival rather
-         than everything landing at once. */
+      /* Portrait */
 
       timeline.fromTo(
         portrait,
@@ -649,7 +787,7 @@ const Hero3D = () => {
         "<",
       );
 
-      /* Portrait — quiet parallax drift, stays on screen */
+      /* Portrait */
 
       timeline.to(
         portrait,
@@ -733,7 +871,7 @@ const Hero3D = () => {
         "<",
       );
 
-      /* Portrait settles back to center */
+      /* Portrait */
 
       timeline.to(
         portrait,
@@ -755,8 +893,7 @@ const Hero3D = () => {
       );
 
       /* ========================================================
-         EXIT STACK — portrait leaves in the same breath so WORK
-         opens on a clean, uncluttered frame
+         EXIT STACK
       ======================================================== */
 
       timeline.to(stack, {
@@ -849,17 +986,107 @@ const Hero3D = () => {
           duration: 1,
         },
       );
-    }, sectionRef);
 
-    const refreshTimer = setTimeout(() => {
-      ScrollTrigger.refresh();
-    }, 100);
+      /* ========================================================
+         SAVE REFERENCE
+      ======================================================== */
+
+      section.__heroTimeline = timeline;
+
+      /*
+       * IMPORTANT:
+       *
+       * Do NOT call ScrollTrigger.refresh()
+       * here immediately.
+       *
+       * The centralized refresh system will run
+       * after fonts + images are ready.
+       */
+    }, section);
+
+    /* ==========================================================
+       WAIT FOR FONT + IMAGE LAYOUT
+    ========================================================== */
+
+    let refreshTimer;
+
+    const scheduleRefresh = () => {
+      clearTimeout(refreshTimer);
+
+      refreshTimer = setTimeout(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            ScrollTrigger.sort();
+            ScrollTrigger.refresh();
+          });
+        });
+      }, 50);
+    };
+
+    /* Fonts */
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(scheduleRefresh);
+    }
+
+    /* Images */
+
+    const images = Array.from(section.querySelectorAll("img"));
+
+    const imagePromises = images.map((img) => {
+      if (img.complete) {
+        return Promise.resolve();
+      }
+
+      return new Promise((resolve) => {
+        img.addEventListener("load", resolve, { once: true });
+
+        img.addEventListener("error", resolve, { once: true });
+      });
+    });
+
+    Promise.all(imagePromises).then(scheduleRefresh);
+
+    /* Immediate stable refresh */
+
+    scheduleRefresh();
+
+    /* ==========================================================
+       RESIZE OBSERVER
+    ========================================================== */
+
+    let resizeObserver = null;
+
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => {
+        scheduleRefresh();
+      });
+
+      resizeObserver.observe(section);
+    }
+
+    /* ==========================================================
+       CLEANUP
+    ========================================================== */
 
     return () => {
       clearTimeout(refreshTimer);
+
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+
+      if (section.__heroTimeline) {
+        delete section.__heroTimeline;
+      }
+
       ctx.revert();
     };
-  }, [ready, loaded]);
+  }, [ready]);
+
+  /* ============================================================
+     RENDER
+  ============================================================ */
 
   return (
     <>
@@ -961,10 +1188,49 @@ const Hero3D = () => {
         }
 
         /* ======================================================
+           LOADER
+        ====================================================== */
+
+        .hero3d__loader {
+          position: absolute;
+          inset: 0;
+          z-index: 200;
+
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 18px;
+
+          background: #f5f8f6;
+
+          transition: opacity 550ms ease;
+        }
+
+        .hero3d__loader-text {
+          font-family: "IBM Plex Mono", monospace;
+          font-size: 10px;
+          letter-spacing: 0.3em;
+          color: #123c35;
+        }
+
+        .hero3d__loader-track {
+          width: 96px;
+          height: 1px;
+          background: rgba(23, 63, 56, 0.14);
+          overflow: hidden;
+        }
+
+        .hero3d__loader-fill {
+          width: 100%;
+          height: 100%;
+          transform-origin: left;
+          background: #65dcca;
+          transition: transform 700ms ease;
+        }
+
+        /* ======================================================
            PORTRAIT
-           A quiet, grayscale panel on the right. Soft feathered
-           edge instead of a hard line, one thin divider rule,
-           and a small caption — no color overlay on the photo.
         ====================================================== */
 
         .hero3d__portrait {
@@ -996,7 +1262,10 @@ const Hero3D = () => {
               black 20%
             );
 
-          will-change: transform, opacity, filter;
+          will-change:
+            transform,
+            opacity,
+            filter;
         }
 
         .hero3d__portrait::before {
@@ -1010,7 +1279,12 @@ const Hero3D = () => {
           width: 1px;
           height: 60%;
 
-          background: rgba(23, 63, 56, 0.25);
+          background: rgba(
+            23,
+            63,
+            56,
+            0.25
+          );
         }
 
         .hero3d__portrait-image {
@@ -1037,7 +1311,12 @@ const Hero3D = () => {
             linear-gradient(
               180deg,
               transparent 55%,
-              rgba(7, 18, 15, 0.82) 100%
+              rgba(
+                7,
+                18,
+                15,
+                0.82
+              ) 100%
             );
         }
 
@@ -1057,9 +1336,20 @@ const Hero3D = () => {
               transparent
             );
 
-          box-shadow: 0 0 16px rgba(139, 232, 207, 0.65);
+          box-shadow:
+            0 0 16px
+            rgba(
+              139,
+              232,
+              207,
+              0.65
+            );
 
-          animation: hero3dPortraitScan 7s ease-in-out infinite;
+          animation:
+            hero3dPortraitScan
+            7s
+            ease-in-out
+            infinite;
         }
 
         @keyframes hero3dPortraitScan {
@@ -1067,16 +1357,20 @@ const Hero3D = () => {
             top: 10%;
             opacity: 0;
           }
+
           12% {
             opacity: 0.75;
           }
+
           50% {
             top: 86%;
             opacity: 0.75;
           }
+
           62% {
             opacity: 0;
           }
+
           100% {
             top: 86%;
             opacity: 0;
@@ -1095,7 +1389,9 @@ const Hero3D = () => {
         .hero3d__portrait-caption span {
           display: block;
 
-          font-family: "IBM Plex Mono", monospace;
+          font-family:
+            "IBM Plex Mono",
+            monospace;
 
           letter-spacing: 0.22em;
 
@@ -1138,7 +1434,12 @@ const Hero3D = () => {
 
           border-bottom:
             1px solid
-            rgba(26, 72, 64, 0.08);
+            rgba(
+              26,
+              72,
+              64,
+              0.08
+            );
         }
 
         .hero3d__logo {
@@ -1241,7 +1542,12 @@ const Hero3D = () => {
           letter-spacing: 0.19em;
 
           color:
-            rgba(36, 76, 69, 0.62);
+            rgba(
+              36,
+              76,
+              69,
+              0.62
+            );
         }
 
         .hero3d__status-dot {
@@ -1256,7 +1562,12 @@ const Hero3D = () => {
 
           box-shadow:
             0 0 14px
-            rgba(120, 219, 201, 0.8);
+            rgba(
+              120,
+              219,
+              201,
+              0.8
+            );
         }
 
         /* ======================================================
@@ -1282,7 +1593,11 @@ const Hero3D = () => {
           top: 50%;
           left: 24px;
 
-          width: min(720px, 58vw);
+          width:
+            min(
+              720px,
+              58vw
+            );
 
           transform:
             translateY(-50%);
@@ -1356,7 +1671,12 @@ const Hero3D = () => {
           line-height: 1.6;
 
           color:
-            rgba(25, 68, 61, 0.65);
+            rgba(
+              25,
+              68,
+              61,
+              0.65
+            );
         }
 
         /* ======================================================
@@ -1366,7 +1686,11 @@ const Hero3D = () => {
         .hero3d__chapter--engineer {
           left: 8%;
 
-          width: min(760px, 58vw);
+          width:
+            min(
+              760px,
+              58vw
+            );
         }
 
         .hero3d__chapter-number {
@@ -1446,7 +1770,12 @@ const Hero3D = () => {
           letter-spacing: 0.18em;
 
           color:
-            rgba(31, 74, 67, 0.65);
+            rgba(
+              31,
+              74,
+              67,
+              0.65
+            );
         }
 
         /* ======================================================
@@ -1456,7 +1785,11 @@ const Hero3D = () => {
         .hero3d__chapter--system {
           left: 10%;
 
-          width: min(650px, 50vw);
+          width:
+            min(
+              650px,
+              50vw
+            );
         }
 
         .hero3d__chapter--system h2 {
@@ -1487,7 +1820,12 @@ const Hero3D = () => {
           letter-spacing: 0.22em;
 
           color:
-            rgba(30, 75, 68, 0.48);
+            rgba(
+              30,
+              75,
+              68,
+              0.48
+            );
         }
 
         /* ======================================================
@@ -1497,7 +1835,11 @@ const Hero3D = () => {
         .hero3d__chapter--stack {
           left: 8%;
 
-          width: min(760px, 56vw);
+          width:
+            min(
+              760px,
+              56vw
+            );
         }
 
         .hero3d__chapter--stack h2 {
@@ -1524,7 +1866,12 @@ const Hero3D = () => {
 
           border:
             1px solid
-            rgba(47, 119, 107, 0.25);
+            rgba(
+              47,
+              119,
+              107,
+              0.25
+            );
 
           border-radius: 100px;
 
@@ -1537,10 +1884,20 @@ const Hero3D = () => {
           letter-spacing: 0.14em;
 
           color:
-            rgba(25, 76, 68, 0.72);
+            rgba(
+              25,
+              76,
+              68,
+              0.72
+            );
 
           background:
-            rgba(255, 255, 255, 0.28);
+            rgba(
+              255,
+              255,
+              255,
+              0.28
+            );
 
           backdrop-filter: blur(8px);
         }
@@ -1552,7 +1909,11 @@ const Hero3D = () => {
         .hero3d__chapter--work {
           left: 9%;
 
-          width: min(700px, 60vw);
+          width:
+            min(
+              700px,
+              60vw
+            );
         }
 
         .hero3d__chapter--work h2 {
@@ -1578,7 +1939,12 @@ const Hero3D = () => {
           letter-spacing: 0.15em;
 
           color:
-            rgba(27, 73, 65, 0.62);
+            rgba(
+              27,
+              73,
+              65,
+              0.62
+            );
         }
 
         .hero3d__work-line {
@@ -1599,7 +1965,12 @@ const Hero3D = () => {
           letter-spacing: 0.2em;
 
           color:
-            rgba(27, 73, 65, 0.55);
+            rgba(
+              27,
+              73,
+              65,
+              0.55
+            );
         }
 
         .hero3d__work-line span {
@@ -1612,8 +1983,6 @@ const Hero3D = () => {
 
         /* ======================================================
            3D LABELS
-           Kept clear of the portrait's 34% right column so they
-           never sit on top of the photo.
         ====================================================== */
 
         .hero3d__labels {
@@ -1643,7 +2012,12 @@ const Hero3D = () => {
           letter-spacing: 0.18em;
 
           color:
-            rgba(31, 78, 70, 0.58);
+            rgba(
+              31,
+              78,
+              70,
+              0.58
+            );
         }
 
         .hero3d__label i {
@@ -1722,7 +2096,12 @@ const Hero3D = () => {
           letter-spacing: 0.2em;
 
           color:
-            rgba(25, 69, 62, 0.7);
+            rgba(
+              25,
+              69,
+              62,
+              0.7
+            );
         }
 
         /* ======================================================
@@ -1750,7 +2129,12 @@ const Hero3D = () => {
           letter-spacing: 0.15em;
 
           color:
-            rgba(30, 74, 67, 0.35);
+            rgba(
+              30,
+              74,
+              67,
+              0.35
+            );
         }
 
         .hero3d__index span:first-child {
@@ -1762,12 +2146,13 @@ const Hero3D = () => {
         ====================================================== */
 
         @media (max-width: 900px) {
-
           .hero3d__chapter {
             left: 28px !important;
 
             width:
-              calc(100% - 56px);
+              calc(
+                100% - 56px
+              );
           }
 
           .hero3d__side-text {
@@ -1785,7 +2170,6 @@ const Hero3D = () => {
           .hero3d__label--mysql {
             right: 8%;
           }
-
         }
 
         /* ======================================================
@@ -1793,7 +2177,6 @@ const Hero3D = () => {
         ====================================================== */
 
         @media (max-width: 640px) {
-
           .hero3d {
             min-height: 650px;
           }
@@ -1820,7 +2203,9 @@ const Hero3D = () => {
             left: 18px !important;
 
             width:
-              calc(100% - 36px);
+              calc(
+                100% - 36px
+              );
           }
 
           .hero3d__chapter--name {
@@ -1885,58 +2270,14 @@ const Hero3D = () => {
             right: 18px;
             bottom: 22px;
           }
-
         }
-
-        .hero3d__loader {
-          position: absolute;
-          inset: 0;
-          z-index: 200;
-
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-
-          gap: 18px;
-
-          background: #f5f8f6;
-
-          transition: opacity 550ms ease;
-        }
-
-        .hero3d__loader-text {
-          font-family: "IBM Plex Mono", monospace;
-
-          font-size: 10px;
-          letter-spacing: 0.3em;
-
-          color: #173f37;
-        }
-
-        .hero3d__loader-track {
-          width: 96px;
-          height: 1px;
-
-          background: rgba(23, 63, 55, 0.15);
-
-          overflow: hidden;
-        }
-
-        .hero3d__loader-fill {
-          width: 100%;
-          height: 100%;
-
-          transform-origin: left;
-
-          background: #63d4c2;
-
-          transition: transform 700ms ease;
-        }
-
       `}</style>
 
       <section ref={sectionRef} className="hero3d">
+        {/* ====================================================
+            LOADER
+        ==================================================== */}
+
         <div
           className="hero3d__loader"
           style={{
@@ -1945,20 +2286,22 @@ const Hero3D = () => {
           }}
         >
           <div className="hero3d__loader-text">{loadingText}</div>
+
           <div className="hero3d__loader-track">
             <div
               className="hero3d__loader-fill"
-              style={{ transform: loaded ? "scaleX(1)" : "scaleX(0.65)" }}
+              style={{
+                transform: loaded ? "scaleX(1)" : "scaleX(0.65)",
+              }}
             />
           </div>
         </div>
+
         {/* ====================================================
             THREE.JS
         ==================================================== */}
 
         <canvas ref={canvasRef} className="hero3d__canvas" />
-
-        {/* Background */}
 
         <div className="hero3d__grid" />
 
@@ -1981,6 +2324,7 @@ const Hero3D = () => {
 
           <div className="hero3d__portrait-caption">
             <span>KAVINDU ABEYKOON</span>
+
             <span>SOFTWARE ENGINEER / 2026</span>
           </div>
         </div>
@@ -2216,7 +2560,6 @@ const Hero3D = () => {
 
           <div className="hero3d__scroll-text">
             <span>SCROLL</span>
-
             <span>EXPLORE</span>
           </div>
         </div>

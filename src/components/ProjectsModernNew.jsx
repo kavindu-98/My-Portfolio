@@ -391,15 +391,21 @@ const Projects = () => {
 
   useEffect(() => {
     const section = sectionRef.current;
+
+    const stage = stageRef.current;
+
     const intro = introRef.current;
+
     const cards = cardsRef.current.filter(Boolean);
 
-    if (!section || !intro || !cards.length) return;
+    if (!section || !stage || !intro || !cards.length) {
+      return;
+    }
 
     const ctx = gsap.context(() => {
       /* ======================================================
-       INTRO
-    ====================================================== */
+         INTRO
+      ====================================================== */
 
       gsap.fromTo(
         intro,
@@ -422,143 +428,102 @@ const Projects = () => {
       );
 
       /* ======================================================
-       INITIAL CARD STATE
-    ====================================================== */
+         CARD INITIAL STATE
+      ====================================================== */
 
       gsap.set(cards, {
         opacity: 0,
         y: 100,
         scale: 0.94,
-        rotationX: 0,
-        transformOrigin: "center center",
       });
 
       /* ======================================================
-       PROJECT STACK TIMELINE
-    ====================================================== */
+         SINGLE PINNED MASTER TIMELINE
 
-      const timeline = gsap.timeline({
+         The section is pinned by ScrollTrigger itself (same
+         device as Hero3D's master timeline) instead of CSS
+         `position: sticky`. Every card gets an exclusive slice
+         of one continuous scroll-scrubbed timeline, so there is
+         never more than one tween in control of any element —
+         and reversing scroll direction just plays the same
+         timeline backward, deterministically.
+      ====================================================== */
+
+      const SLOT = 1; // arbitrary timeline units reserved per card
+
+      const master = gsap.timeline({
         scrollTrigger: {
           trigger: section,
 
-          /*
-           * Projects starts when its top reaches the top
-           * of the viewport.
-           */
           start: "top top",
 
-          /*
-           * The CSS section is 600vh.
-           * Therefore the timeline has plenty of scroll space.
-           */
-          end: "bottom bottom",
+          end: `+=${cards.length * 80}%`,
 
           scrub: 1,
+
+          pin: true,
+
+          anticipatePin: 1,
 
           invalidateOnRefresh: true,
 
           onUpdate: (self) => {
             if (progressRef.current) {
-              gsap.set(progressRef.current, {
-                scaleX: self.progress,
-              });
+              gsap.set(progressRef.current, { scaleX: self.progress });
             }
           },
         },
       });
 
-      /*
-       * Each project gets one complete section of the
-       * animation timeline.
-       */
-      const SLOT = 1;
-
       cards.forEach((card, index) => {
         const position = index * SLOT;
 
-        /* ==================================================
-         CURRENT CARD ENTERS
-      ================================================== */
+        /* ENTER */
 
-        timeline.to(
+        master.to(
           card,
           {
             opacity: 1,
             y: 0,
             scale: 1,
-
-            duration: 0.55,
-
+            duration: SLOT * 0.6,
             ease: "power3.out",
           },
           position,
         );
 
-        /* ==================================================
-         PREVIOUS CARDS MOVE INTO STACK
-      ================================================== */
+        /* PREVIOUS CARDS move backward into the stack instead
+           of disappearing — one tween per card per step, on the
+           single shared timeline. */
 
         cards.slice(0, index).forEach((previous, previousIndex) => {
           const depth = index - previousIndex;
 
-          timeline.to(
+          master.to(
             previous,
             {
-              y: -depth * 22,
+              y: -depth * 24,
 
-              scale: 1 - depth * 0.035,
+              scale: 1 - Math.min(depth * 0.025, 0.1),
 
-              opacity: Math.max(0.35, 0.82 - depth * 0.1),
+              opacity: Math.max(0.35, 0.82 - depth * 0.12),
 
-              duration: 0.55,
+              duration: SLOT * 0.6,
 
               ease: "power3.out",
             },
             position,
           );
         });
-
-        /* ==================================================
-         CURRENT CARD SMALL SETTLE
-      ================================================== */
-
-        timeline.to(
-          card,
-          {
-            y: 0,
-            scale: 1,
-
-            duration: 0.45,
-
-            ease: "power2.out",
-          },
-          position + 0.55,
-        );
       });
 
-      /* ======================================================
-       FINAL CARD
-    ====================================================== */
+      /* small settle beat on the final card before release */
 
-      const lastCard = cards[cards.length - 1];
-
-      timeline.to(
-        lastCard,
-        {
-          scale: 1,
-          y: 0,
-          opacity: 1,
-
-          duration: 0.6,
-
-          ease: "power2.out",
-        },
-        "+=0.2",
-      );
+      master.to({}, { duration: SLOT * 0.5 });
 
       /* ======================================================
-       DECORATIVE NETWORK ANIMATION
-    ====================================================== */
+         VISUAL MICRO ANIMATION — continuous, unrelated to scroll
+      ====================================================== */
 
       const rings = section.querySelectorAll(".network-ring");
 
@@ -573,10 +538,6 @@ const Projects = () => {
           ease: "none",
         });
       });
-
-      /* ======================================================
-       CREATIVE RINGS
-    ====================================================== */
 
       const creativeRings = section.querySelectorAll(".creative-circle");
 
@@ -593,12 +554,19 @@ const Projects = () => {
       });
 
       /* ======================================================
-       REFRESH AFTER EVERYTHING IS CREATED
-    ====================================================== */
+         NOTE: no local ScrollTrigger.refresh() here on purpose.
 
-      requestAnimationFrame(() => {
-        ScrollTrigger.refresh();
-      });
+         Hero3D's pin doesn't activate until ~850ms after mount
+         (its loading screen), so a refresh fired here — before
+         that pin exists — would cache a scroll position for
+         this section that goes stale the instant Hero3D's pin
+         does activate. Refreshing is handled once, centrally,
+         from App.jsx (see refreshScrollTriggersOnce in
+         gsapAnimations.js) — and Hero3D also fires one final
+         refresh itself right after its own pin is created, to
+         correct everything below it. Don't add a refresh call
+         back here; it will reintroduce this exact bug.
+      ====================================================== */
     }, section);
 
     return () => {

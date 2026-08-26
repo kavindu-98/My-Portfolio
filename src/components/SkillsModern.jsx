@@ -1,6 +1,6 @@
 /** @format */
 
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
 import SplitText from "gsap/SplitText";
@@ -76,60 +76,94 @@ const SkillsModern = () => {
   const [activeCategory, setActiveCategory] = useState(0);
   const prevFlipState = useRef(null);
 
-  // ---- SplitText headline reveal, on scroll-in ----
-  useLayoutEffect(() => {
+  useEffect(() => {
+    const section = sectionRef.current;
+    const title = titleRef.current;
+    const icon = iconRef.current;
+
+    if (!section || !title) return;
+
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    if (reduceMotion || !titleRef.current) return;
 
-    const split = new SplitText(titleRef.current, {
-      type: "chars",
-      mask: "chars",
-    });
+    if (reduceMotion) return;
 
-    gsap.from(split.chars, {
-      yPercent: 120,
-      opacity: 0,
-      duration: 0.7,
-      stagger: 0.02,
-      ease: "power4.out",
-      scrollTrigger: { trigger: titleRef.current, start: "top 82%" },
-    });
+    const ctx = gsap.context(() => {
+      const split = new SplitText(title, {
+        type: "chars",
+        mask: "chars",
+      });
 
-    gsap.to(iconRef.current, {
-      rotation: 24,
-      ease: "none",
-      scrollTrigger: {
-        trigger: sectionRef.current,
-        start: "top bottom",
-        end: "bottom top",
-        scrub: 0.6,
-      },
-    });
+      gsap.from(split.chars, {
+        yPercent: 120,
+        opacity: 0,
+        duration: 0.7,
+        stagger: 0.02,
+        ease: "power4.out",
 
-    return () => split.revert();
+        scrollTrigger: {
+          trigger: title,
+          start: "top 82%",
+          once: true,
+        },
+      });
+
+      if (icon) {
+        gsap.to(icon, {
+          rotation: 24,
+          ease: "none",
+
+          scrollTrigger: {
+            trigger: section,
+            start: "top bottom",
+            end: "bottom top",
+            scrub: 0.6,
+          },
+        });
+      }
+    }, section);
+
+    return () => {
+      ctx.revert();
+    };
   }, []);
 
   // ---- Flip: chip grid morphs when the category tab changes ----
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!chipsWrapRef.current) return;
-    if (!prevFlipState.current) return; // first render — nothing to animate from
+    if (!prevFlipState.current) return;
 
     Flip.from(prevFlipState.current, {
       duration: 0.55,
       ease: "power3.inOut",
       stagger: 0.02,
       absolute: true,
+
       onEnter: (els) =>
         gsap.fromTo(
           els,
-          { opacity: 0, scale: 0.85 },
-          { opacity: 1, scale: 1, duration: 0.4, stagger: 0.03 },
+          {
+            opacity: 0,
+            scale: 0.85,
+          },
+          {
+            opacity: 1,
+            scale: 1,
+            duration: 0.4,
+            stagger: 0.03,
+          },
         ),
+
       onLeave: (els) =>
-        gsap.to(els, { opacity: 0, scale: 0.85, duration: 0.3 }),
+        gsap.to(els, {
+          opacity: 0,
+          scale: 0.85,
+          duration: 0.3,
+        }),
     });
+
+    prevFlipState.current = null;
   }, [activeCategory]);
 
   const handleTabChange = (idx) => {
