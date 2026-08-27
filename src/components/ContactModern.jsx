@@ -2,6 +2,16 @@
 
 import React, { useEffect, useRef } from "react";
 import { animateInOnScroll } from "../utils/gsapAnimations";
+import { motion } from "framer-motion";
+import {
+  FaGithub,
+  FaLinkedin,
+  FaTwitter,
+  FaEnvelope,
+  FaPhone,
+  FaHeart,
+  FaArrowUp,
+} from "react-icons/fa";
 
 const Contact = () => {
   const containerRef = useRef(null);
@@ -23,27 +33,26 @@ const Contact = () => {
 
     console.log("Form submitted");
   };
-
   const socials = [
     {
-      name: "GitHub",
-      icon: "🐙",
+      icon: FaGithub,
       url: "https://github.com/kavindu-98",
+      name: "GitHub",
     },
     {
-      name: "LinkedIn",
-      icon: "💼",
+      icon: FaLinkedin,
       url: "https://linkedin.com/in/kavindu-abeykoon",
+      name: "LinkedIn",
     },
     {
-      name: "Email",
-      icon: "✉",
+      icon: FaEnvelope,
       url: "mailto:kavinduumayanga058@gmail.com",
+      name: "Email",
     },
     {
-      name: "Phone",
-      icon: "📱",
+      icon: FaPhone,
       url: "tel:0768510781",
+      name: "Phone",
     },
   ];
 
@@ -570,62 +579,43 @@ const Contact = () => {
         }
 
         .contact-social-link {
-          position: relative;
+  position: relative;
 
-          width: 48px;
+  width: 48px;
+  height: 48px;
 
-          height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-          display: flex;
+  background: rgba(252, 255, 253, 0.7);
 
-          align-items: center;
+  border: 1px solid var(--line);
 
-          justify-content: center;
+  color: var(--muted);
 
-          background:
-            rgba(
-              252,
-              255,
-              253,
-              0.7
-            );
+  text-decoration: none;
 
-          border:
-            1px solid
-            var(--line);
+  transition:
+    border-color 300ms ease,
+    background 300ms ease,
+    color 300ms ease,
+    box-shadow 300ms ease;
 
-          color: var(--text);
+  will-change: transform;
+}
 
-          text-decoration: none;
+.contact-social-link:hover {
+  border-color: var(--green);
 
-          font-size: 19px;
+  background: var(--green-light);
 
-          transition:
-            transform 300ms ease,
-            border-color 300ms ease,
-            background 300ms ease,
-            box-shadow 300ms ease;
-        }
+  color: var(--green-dark);
 
-        .contact-social-link:hover {
-          transform:
-            translateY(-5px);
-
-          border-color:
-            var(--green);
-
-          background:
-            var(--green-light);
-
-          box-shadow:
-            0 12px 30px
-            rgba(
-              31,
-              90,
-              75,
-              0.1
-            );
-        }
+  box-shadow:
+    0 12px 30px
+    rgba(31, 90, 75, 0.1);
+}
 
         /* ====================================================
            TOOLTIP
@@ -912,19 +902,49 @@ const Contact = () => {
           </div>
 
           <div className="contact-social-links">
-            {socials.map((social) => (
-              <a
-                key={social.name}
-                href={social.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="contact-social-link"
-              >
-                {social.icon}
+            {socials.map((social, index) => {
+              const Icon = social.icon;
 
-                <span className="contact-tooltip">{social.name}</span>
-              </a>
-            ))}
+              const isExternal =
+                !social.url.startsWith("mailto:") &&
+                !social.url.startsWith("tel:");
+
+              return (
+                <motion.a
+                  key={social.name}
+                  href={social.url}
+                  target={isExternal ? "_blank" : undefined}
+                  rel={isExternal ? "noopener noreferrer" : undefined}
+                  aria-label={social.name}
+                  initial={{
+                    opacity: 0,
+                    y: 10,
+                  }}
+                  whileInView={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  transition={{
+                    duration: 0.4,
+                    delay: index * 0.08,
+                  }}
+                  viewport={{
+                    once: true,
+                  }}
+                  whileHover={{
+                    y: -4,
+                  }}
+                  whileTap={{
+                    scale: 0.95,
+                  }}
+                  className="contact-social-link group"
+                >
+                  <Icon className="text-[18px]" />
+
+                  <span className="contact-tooltip">{social.name}</span>
+                </motion.a>
+              );
+            })}
           </div>
         </div>
 

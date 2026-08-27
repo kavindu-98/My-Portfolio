@@ -1317,7 +1317,7 @@
     /*
      * Keep enough vertical scroll space for all cards.
      */
-    min-height: 600vh;
+    min-height: 100vh;
   }
 
   .projects-topbar {
@@ -1428,7 +1428,7 @@
 
 @media (max-width: 480px) {
   .projects-section {
-    min-height: 600vh;
+    min-height: 100vh;
   }
 
   .projects-intro h2 {

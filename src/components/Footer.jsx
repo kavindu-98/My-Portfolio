@@ -7,6 +7,7 @@ import {
   FaLinkedin,
   FaTwitter,
   FaEnvelope,
+  FaPhone,
   FaHeart,
   FaArrowUp,
 } from "react-icons/fa";
@@ -24,14 +25,14 @@ const Footer = () => {
       label: "LinkedIn",
     },
     {
-      icon: FaTwitter,
-      href: "#",
-      label: "Twitter",
-    },
-    {
       icon: FaEnvelope,
       href: "mailto:kavinduumayanga058@gmail.com",
       label: "Email",
+    },
+    {
+      icon: FaPhone,
+      href: "tel:+94768510781",
+      label: "Phone",
     },
   ];
 

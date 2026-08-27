@@ -85,15 +85,431 @@ const Experience = () => {
     }
 
     const ctx = gsap.context(() => {
+      const mm = gsap.matchMedia();
+
+      /* ======================================================
+         DESKTOP
+         
+         01 RIGHT  -> CENTER
+         02 LEFT   -> CENTER
+         03 RIGHT  -> CENTER
+         04 LEFT   -> CENTER
+      ====================================================== */
+
+      mm.add("(min-width: 801px)", () => {
+        /* ----------------------------------------------------
+           INITIAL PROGRESS
+        ---------------------------------------------------- */
+
+        gsap.set(progress, {
+          scaleY: 0,
+          transformOrigin: "top center",
+        });
+
+        /* ----------------------------------------------------
+           VERTICAL TIMELINE PROGRESS
+        ---------------------------------------------------- */
+
+        gsap.to(progress, {
+          scaleY: 1,
+          ease: "none",
+
+          scrollTrigger: {
+            trigger: timeline,
+            start: "top 70%",
+            end: "bottom 70%",
+            scrub: 1,
+            invalidateOnRefresh: true,
+          },
+        });
+
+        /* ----------------------------------------------------
+           EXPERIENCE CARDS
+        ---------------------------------------------------- */
+
+        items.forEach((item, index) => {
+          const content = item.querySelector(".experience-content");
+          const dot = item.querySelector(".experience-dot");
+          const marker = item.querySelector(".experience-marker");
+          const year = item.querySelector(".experience-year");
+          const highlightItems = item.querySelectorAll(".experience-highlight");
+
+          const isRight = index % 2 === 0;
+
+          /*
+           * IMPORTANT:
+           *
+           * The card itself remains in its normal grid column.
+           *
+           * GSAP only moves the card visually.
+           *
+           * 01 / 03:
+           * RIGHT -> CENTER
+           *
+           * 02 / 04:
+           * LEFT -> CENTER
+           */
+
+          gsap.set(content, {
+            x: isRight ? 180 : -180,
+            opacity: 0,
+            scale: 0.96,
+          });
+
+          /* --------------------------------------------------
+             DOT INITIAL STATE
+          -------------------------------------------------- */
+
+          gsap.set(dot, {
+            scale: 1,
+            backgroundColor: "rgba(31, 90, 75, 0.25)",
+            borderColor: "#f1f9f6",
+            boxShadow: "0 0 0 1px rgba(31, 90, 75, 0.12)",
+          });
+
+          /* --------------------------------------------------
+             MARKER INITIAL STATE
+          -------------------------------------------------- */
+
+          gsap.set(marker, {
+            width: 0,
+            opacity: 0,
+          });
+
+          /* --------------------------------------------------
+             HIGHLIGHTS INITIAL STATE
+          -------------------------------------------------- */
+
+          gsap.set(highlightItems, {
+            opacity: 0,
+            x: isRight ? 12 : -12,
+          });
+
+          /* --------------------------------------------------
+             SCROLL TIMELINE
+          -------------------------------------------------- */
+
+          const itemTimeline = gsap.timeline({
+            scrollTrigger: {
+              trigger: item,
+
+              start: "top 78%",
+              end: "top 38%",
+
+              scrub: 1.15,
+
+              invalidateOnRefresh: true,
+            },
+          });
+
+          /* ==================================================
+             STEP 1
+             
+             CARD MOVES FROM SIDE TO CENTER
+          ================================================== */
+
+          itemTimeline.to(
+            content,
+            {
+              x: 0,
+              opacity: 1,
+              scale: 1,
+
+              duration: 1,
+
+              ease: "power3.out",
+            },
+            0,
+          );
+
+          /* ==================================================
+             STEP 2
+             
+             CONNECTOR LINE EXTENDS
+          ================================================== */
+
+          itemTimeline.to(
+            marker,
+            {
+              width: "calc(50% - 25px)",
+              opacity: 1,
+
+              duration: 0.8,
+
+              ease: "power2.out",
+            },
+            0.1,
+          );
+
+          /* ==================================================
+             STEP 3
+             
+             DOT ACTIVATES WHEN CARD REACHES CENTER
+          ================================================== */
+
+          itemTimeline.to(
+            dot,
+            {
+              scale: 1.45,
+
+              backgroundColor: "#5DB9A2",
+
+              borderColor: "#E5FBF4",
+
+              boxShadow:
+                "0 0 0 7px rgba(93,185,162,0.12), 0 0 28px rgba(93,185,162,0.35)",
+
+              duration: 0.35,
+
+              ease: "back.out(2)",
+            },
+            0.7,
+          );
+
+          /* ==================================================
+             STEP 4
+             
+             YEAR BECOMES ACTIVE
+          ================================================== */
+
+          itemTimeline.to(
+            year,
+            {
+              color: "#5DB9A2",
+
+              duration: 0.3,
+
+              ease: "power2.out",
+            },
+            0.7,
+          );
+
+          /* ==================================================
+             STEP 5
+             
+             HIGHLIGHTS REVEAL
+          ================================================== */
+
+          if (highlightItems.length) {
+            itemTimeline.to(
+              highlightItems,
+              {
+                opacity: 1,
+                x: 0,
+
+                stagger: 0.07,
+
+                duration: 0.35,
+
+                ease: "power2.out",
+              },
+              0.78,
+            );
+          }
+
+          /* ==================================================
+             PREVIOUS CARD FADES SLIGHTLY
+          ================================================== */
+
+          if (index > 0) {
+            const previousItem = items[index - 1];
+
+            gsap.to(previousItem, {
+              opacity: 0.5,
+
+              scrollTrigger: {
+                trigger: item,
+
+                start: "top 62%",
+                end: "top 42%",
+
+                scrub: 1,
+
+                invalidateOnRefresh: true,
+              },
+            });
+          }
+        });
+      });
+
+      /* ======================================================
+         MOBILE
+         
+         No horizontal card movement.
+         
+         Timeline moves to LEFT.
+         Cards remain stable and readable.
+      ====================================================== */
+
+      mm.add("(max-width: 800px)", () => {
+        gsap.set(progress, {
+          scaleY: 0,
+          transformOrigin: "top center",
+        });
+
+        gsap.to(progress, {
+          scaleY: 1,
+
+          ease: "none",
+
+          scrollTrigger: {
+            trigger: timeline,
+
+            start: "top 75%",
+            end: "bottom 75%",
+
+            scrub: 1,
+
+            invalidateOnRefresh: true,
+          },
+        });
+
+        items.forEach((item, index) => {
+          const content = item.querySelector(".experience-content");
+          const dot = item.querySelector(".experience-dot");
+          const marker = item.querySelector(".experience-marker");
+          const year = item.querySelector(".experience-year");
+          const highlightItems = item.querySelectorAll(".experience-highlight");
+
+          /* --------------------------------------------------
+             MOBILE INITIAL STATE
+          -------------------------------------------------- */
+
+          gsap.set(content, {
+            x: 0,
+            opacity: 0,
+            y: 35,
+            scale: 0.98,
+          });
+
+          gsap.set(dot, {
+            scale: 1,
+
+            backgroundColor: "rgba(31, 90, 75, 0.25)",
+
+            borderColor: "#f1f9f6",
+
+            boxShadow: "0 0 0 1px rgba(31, 90, 75, 0.12)",
+          });
+
+          gsap.set(marker, {
+            width: 0,
+            opacity: 0,
+          });
+
+          gsap.set(highlightItems, {
+            opacity: 0,
+            x: -10,
+          });
+
+          /* --------------------------------------------------
+             MOBILE SCROLL ANIMATION
+          -------------------------------------------------- */
+
+          const mobileTimeline = gsap.timeline({
+            scrollTrigger: {
+              trigger: item,
+
+              start: "top 82%",
+              end: "top 52%",
+
+              scrub: 1,
+
+              invalidateOnRefresh: true,
+            },
+          });
+
+          /* CARD RISES */
+
+          mobileTimeline.to(
+            content,
+            {
+              y: 0,
+              opacity: 1,
+              scale: 1,
+
+              duration: 0.8,
+
+              ease: "power3.out",
+            },
+            0,
+          );
+
+          /* CONNECTOR */
+
+          mobileTimeline.to(
+            marker,
+            {
+              width: "30px",
+              opacity: 1,
+
+              duration: 0.5,
+
+              ease: "power2.out",
+            },
+            0.15,
+          );
+
+          /* DOT */
+
+          mobileTimeline.to(
+            dot,
+            {
+              scale: 1.35,
+
+              backgroundColor: "#5DB9A2",
+
+              borderColor: "#E5FBF4",
+
+              boxShadow:
+                "0 0 0 6px rgba(93,185,162,0.12), 0 0 22px rgba(93,185,162,0.3)",
+
+              duration: 0.35,
+
+              ease: "back.out(2)",
+            },
+            0.5,
+          );
+
+          /* YEAR */
+
+          mobileTimeline.to(
+            year,
+            {
+              color: "#5DB9A2",
+
+              duration: 0.25,
+            },
+            0.5,
+          );
+
+          /* HIGHLIGHTS */
+
+          if (highlightItems.length) {
+            mobileTimeline.to(
+              highlightItems,
+              {
+                opacity: 1,
+
+                x: 0,
+
+                stagger: 0.06,
+
+                duration: 0.3,
+
+                ease: "power2.out",
+              },
+              0.6,
+            );
+          }
+        });
+      });
+
       /* ======================================================
          REDUCED MOTION
       ====================================================== */
 
-      const prefersReducedMotion = window.matchMedia(
-        "(prefers-reduced-motion: reduce)",
-      ).matches;
-
-      if (prefersReducedMotion) {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         gsap.set(items, {
           opacity: 1,
         });
@@ -106,7 +522,9 @@ const Experience = () => {
 
           gsap.set(content, {
             x: 0,
+            y: 0,
             opacity: 1,
+            scale: 1,
           });
 
           gsap.set(dot, {
@@ -115,7 +533,7 @@ const Experience = () => {
           });
 
           gsap.set(marker, {
-            width: "calc(70px + 50%)",
+            width: "30px",
             opacity: 1,
           });
 
@@ -128,256 +546,7 @@ const Experience = () => {
         gsap.set(progress, {
           scaleY: 1,
         });
-
-        return;
       }
-
-      /* ======================================================
-         INITIAL TIMELINE STATE
-      ====================================================== */
-
-      gsap.set(progress, {
-        scaleY: 0,
-        transformOrigin: "top center",
-      });
-
-      /* ======================================================
-         TIMELINE PROGRESS
-         
-         The vertical green line grows with scrolling.
-      ====================================================== */
-
-      gsap.to(progress, {
-        scaleY: 1,
-        ease: "none",
-
-        scrollTrigger: {
-          trigger: timeline,
-
-          start: "top 70%",
-
-          end: "bottom 70%",
-
-          scrub: 1,
-        },
-      });
-
-      /* ======================================================
-         EXPERIENCE ITEMS
-         
-         01 -> RIGHT -> CENTER
-         02 -> LEFT  -> CENTER
-         03 -> RIGHT -> CENTER
-         04 -> LEFT  -> CENTER
-      ====================================================== */
-
-      items.forEach((item, index) => {
-        const content = item.querySelector(".experience-content");
-        const dot = item.querySelector(".experience-dot");
-        const year = item.querySelector(".experience-year");
-        const marker = item.querySelector(".experience-marker");
-        const highlightItems = item.querySelectorAll(".experience-highlight");
-
-        /*
-         * Even index:
-         * 0 = Experience 01 = RIGHT
-         * 2 = Experience 03 = RIGHT
-         *
-         * Odd index:
-         * 1 = Experience 02 = LEFT
-         * 3 = Experience 04 = LEFT
-         */
-        const isRight = index % 2 === 0;
-
-        /* ====================================================
-           INITIAL CARD POSITION
-        ==================================================== */
-
-        gsap.set(content, {
-          x: isRight ? 180 : -180,
-          opacity: 0,
-          scale: 0.97,
-        });
-
-        /* ====================================================
-           INITIAL DOT
-        ==================================================== */
-
-        gsap.set(dot, {
-          scale: 1,
-          backgroundColor: "rgba(31, 90, 75, 0.25)",
-          borderColor: "#f1f9f6",
-          boxShadow: "0 0 0 1px rgba(31, 90, 75, 0.12)",
-        });
-
-        /* ====================================================
-           INITIAL MARKER
-        ==================================================== */
-
-        gsap.set(marker, {
-          width: 0,
-          opacity: 0,
-        });
-
-        /* ====================================================
-           INITIAL HIGHLIGHTS
-        ==================================================== */
-
-        gsap.set(highlightItems, {
-          opacity: 0,
-          x: isRight ? 15 : -15,
-        });
-
-        /* ====================================================
-           ITEM SCROLL TIMELINE
-        ==================================================== */
-
-        const itemTimeline = gsap.timeline({
-          scrollTrigger: {
-            trigger: item,
-
-            start: "top 75%",
-
-            end: "top 40%",
-
-            scrub: 1.2,
-
-            invalidateOnRefresh: true,
-          },
-        });
-
-        /* ====================================================
-           1. CARD MOVES TOWARD TIMELINE
-           
-           RIGHT CARD:
-           180px -> 0
-
-           LEFT CARD:
-           -180px -> 0
-        ==================================================== */
-
-        itemTimeline.to(
-          content,
-          {
-            x: 0,
-
-            opacity: 1,
-
-            scale: 1,
-
-            duration: 1,
-
-            ease: "power3.out",
-          },
-          0,
-        );
-
-        /* ====================================================
-           2. CONNECTOR LINE GROWS
-        ==================================================== */
-
-        itemTimeline.to(
-          marker,
-          {
-            width: "calc(70px + 50%)",
-
-            opacity: 1,
-
-            duration: 0.85,
-
-            ease: "power3.out",
-          },
-          0.15,
-        );
-
-        /* ====================================================
-           3. DOT ACTIVATES
-           
-           This happens after the card has almost reached
-           the center timeline.
-        ==================================================== */
-
-        itemTimeline.to(
-          dot,
-          {
-            scale: 1.4,
-
-            backgroundColor: "#5DB9A2",
-
-            borderColor: "#E5FBF4",
-
-            boxShadow:
-              "0 0 0 7px rgba(93,185,162,0.12), 0 0 28px rgba(93,185,162,0.35)",
-
-            duration: 0.35,
-
-            ease: "power3.out",
-          },
-          0.72,
-        );
-
-        /* ====================================================
-           4. YEAR ACTIVATION
-        ==================================================== */
-
-        itemTimeline.to(
-          year,
-          {
-            color: "#5DB9A2",
-
-            duration: 0.35,
-
-            ease: "power2.out",
-          },
-          0.7,
-        );
-
-        /* ====================================================
-           5. HIGHLIGHTS APPEAR
-        ==================================================== */
-
-        if (highlightItems.length) {
-          itemTimeline.to(
-            highlightItems,
-            {
-              opacity: 1,
-
-              x: 0,
-
-              stagger: 0.08,
-
-              duration: 0.4,
-
-              ease: "power2.out",
-            },
-            0.76,
-          );
-        }
-
-        /* ====================================================
-           6. PREVIOUS ITEM BECOMES LESS PROMINENT
-        ==================================================== */
-
-        if (index > 0) {
-          const previousItem = items[index - 1];
-
-          gsap.to(previousItem, {
-            opacity: 0.5,
-
-            scrollTrigger: {
-              trigger: item,
-
-              start: "top 62%",
-
-              end: "top 40%",
-
-              scrub: 1,
-
-              invalidateOnRefresh: true,
-            },
-          });
-        }
-      });
 
       /* ======================================================
          HEADER REVEAL
@@ -390,12 +559,10 @@ const Experience = () => {
           header,
           {
             opacity: 0,
-
             y: 45,
           },
           {
             opacity: 1,
-
             y: 0,
 
             duration: 1,
@@ -414,7 +581,7 @@ const Experience = () => {
       }
 
       /* ======================================================
-         BACKGROUND GRID MOVEMENT
+         BACKGROUND GRID
       ====================================================== */
 
       const grid = section.querySelector(".experience-grid");
@@ -429,7 +596,6 @@ const Experience = () => {
             trigger: section,
 
             start: "top bottom",
-
             end: "bottom top",
 
             scrub: 2,
@@ -453,7 +619,6 @@ const Experience = () => {
             trigger: section,
 
             start: "top bottom",
-
             end: "bottom top",
 
             scrub: 2,
@@ -462,15 +627,18 @@ const Experience = () => {
       }
 
       /* ======================================================
-         REFRESH
-         
-         Helps ScrollTrigger recalculate positions after
-         the section/layout has settled.
+         REFRESH SCROLLTRIGGER
       ====================================================== */
 
       requestAnimationFrame(() => {
-        ScrollTrigger.refresh();
+        requestAnimationFrame(() => {
+          ScrollTrigger.refresh();
+        });
       });
+
+      return () => {
+        mm.revert();
+      };
     }, section);
 
     return () => {
@@ -498,12 +666,7 @@ const Experience = () => {
 
           --muted: #66877f;
 
-          --line: rgba(
-            31,
-            90,
-            75,
-            0.13
-          );
+          --line: rgba(31, 90, 75, 0.13);
 
           position: relative;
 
@@ -581,8 +744,7 @@ const Experience = () => {
 
           justify-content: space-between;
 
-          border-bottom:
-            1px solid var(--line);
+          border-bottom: 1px solid var(--line);
 
           font-family:
             "IBM Plex Mono",
@@ -614,12 +776,7 @@ const Experience = () => {
 
           box-shadow:
             0 0 0 5px
-            rgba(
-              93,
-              185,
-              162,
-              0.1
-            );
+            rgba(93, 185, 162, 0.1);
         }
 
         .experience-top-right {
@@ -728,7 +885,7 @@ const Experience = () => {
         }
 
         /* ====================================================
-           MAIN TIMELINE
+           TIMELINE
         ==================================================== */
 
         .experience-timeline {
@@ -746,7 +903,7 @@ const Experience = () => {
         }
 
         /* ====================================================
-           TIMELINE BASE
+           BASE LINE
         ==================================================== */
 
         .experience-line {
@@ -775,7 +932,7 @@ const Experience = () => {
         }
 
         /* ====================================================
-           ACTIVE GREEN LINE
+           GREEN PROGRESS LINE
         ==================================================== */
 
         .experience-line-progress {
@@ -820,10 +977,6 @@ const Experience = () => {
 
         /* ====================================================
            EXPERIENCE ITEM
-           
-           IMPORTANT:
-           GSAP now controls the horizontal movement of
-           the content card.
         ==================================================== */
 
         .experience-item {
@@ -843,16 +996,28 @@ const Experience = () => {
           z-index: 3;
         }
 
+        /* ----------------------------------------------------
+           RIGHT SIDE CARDS
+           
+           01 / 03
+        ---------------------------------------------------- */
+
         .experience-item:nth-child(odd) {
           padding-right: 70px;
         }
+
+        /* ----------------------------------------------------
+           LEFT SIDE CARDS
+           
+           02 / 04
+        ---------------------------------------------------- */
 
         .experience-item:nth-child(even) {
           padding-left: 70px;
         }
 
         /* ====================================================
-           CONTENT
+           CARD
         ==================================================== */
 
         .experience-content {
@@ -922,7 +1087,7 @@ const Experience = () => {
         }
 
         /* ====================================================
-           EXPERIENCE NUMBER
+           NUMBER
         ==================================================== */
 
         .experience-number {
@@ -1092,7 +1257,8 @@ const Experience = () => {
 
           border-radius: 50%;
 
-          background: var(--green);
+          background:
+            var(--green);
         }
 
         /* ====================================================
@@ -1147,13 +1313,7 @@ const Experience = () => {
         }
 
         /* ====================================================
-           HORIZONTAL MARKER
-           
-           RIGHT CARD:
-           marker grows from timeline -> card
-
-           LEFT CARD:
-           marker grows from timeline -> card
+           CONNECTOR
         ==================================================== */
 
         .experience-marker {
@@ -1167,7 +1327,8 @@ const Experience = () => {
 
           opacity: 0;
 
-          background: var(--green);
+          background:
+            var(--green);
 
           z-index: 5;
 
@@ -1181,15 +1342,13 @@ const Experience = () => {
             );
         }
 
+        /* ----------------------------------------------------
+           RIGHT CARD CONNECTOR
+           
+           Timeline -> RIGHT CARD
+        ---------------------------------------------------- */
+
         .experience-item:nth-child(odd)
-        .experience-marker {
-          right: 50%;
-
-          transform-origin:
-            right center;
-        }
-
-        .experience-item:nth-child(even)
         .experience-marker {
           left: 50%;
 
@@ -1197,8 +1356,22 @@ const Experience = () => {
             left center;
         }
 
+        /* ----------------------------------------------------
+           LEFT CARD CONNECTOR
+           
+           Timeline -> LEFT CARD
+        ---------------------------------------------------- */
+
+        .experience-item:nth-child(even)
+        .experience-marker {
+          right: 50%;
+
+          transform-origin:
+            right center;
+        }
+
         /* ====================================================
-           SIDE LABEL
+           SIDE TEXT
         ==================================================== */
 
         .experience-side-text {
@@ -1227,7 +1400,7 @@ const Experience = () => {
         }
 
         /* ====================================================
-           BOTTOM STATEMENT
+           END
         ==================================================== */
 
         .experience-end {
@@ -1273,24 +1446,33 @@ const Experience = () => {
         }
 
         /* ====================================================
-           MOBILE
+           TABLET / MOBILE
         ==================================================== */
 
         @media (max-width: 800px) {
 
           .experience-section {
-            min-height: 260vh;
+            min-height: auto;
           }
+
+          /* ------------------------------------------------
+             TOP BAR
+          ------------------------------------------------ */
 
           .experience-topbar {
             height: 65px;
 
-            padding: 0 20px;
+            padding:
+              0 20px;
           }
 
           .experience-top-right {
             display: none;
           }
+
+          /* ------------------------------------------------
+             HEADER
+          ------------------------------------------------ */
 
           .experience-header {
             padding:
@@ -1298,12 +1480,23 @@ const Experience = () => {
           }
 
           .experience-header h2 {
-            font-size: 4rem;
+            font-size:
+              clamp(
+                3.5rem,
+                14vw,
+                5rem
+              );
           }
 
           .experience-header-description {
             max-width: 320px;
+
+            font-size: 9px;
           }
+
+          /* ------------------------------------------------
+             TIMELINE
+          ------------------------------------------------ */
 
           .experience-timeline {
             width:
@@ -1311,12 +1504,13 @@ const Experience = () => {
                 100% - 40px
               );
 
-            padding-bottom: 100px;
+            padding:
+              20px 0 80px;
           }
 
-          /* -----------------------------------------------
-             MOVE LINE TO LEFT
-          ----------------------------------------------- */
+          /* ------------------------------------------------
+             MOVE TIMELINE TO LEFT
+          ------------------------------------------------ */
 
           .experience-line {
             left: 12px;
@@ -1325,9 +1519,9 @@ const Experience = () => {
               translateX(-50%);
           }
 
-          /* -----------------------------------------------
-             MOBILE ITEM
-          ----------------------------------------------- */
+          /* ------------------------------------------------
+             ITEMS
+          ------------------------------------------------ */
 
           .experience-item {
             min-height: auto;
@@ -1335,8 +1529,12 @@ const Experience = () => {
             display: block;
 
             padding:
-              40px 0 80px 42px !important;
+              45px 0 75px 42px !important;
           }
+
+          /* ------------------------------------------------
+             CARD
+          ------------------------------------------------ */
 
           .experience-content {
             width: 100%;
@@ -1345,9 +1543,7 @@ const Experience = () => {
               24px 20px;
 
             transform:
-              translateX(0) !important;
-
-            opacity: 1;
+              none;
           }
 
           .experience-item:nth-child(odd)
@@ -1357,30 +1553,30 @@ const Experience = () => {
             grid-column: auto;
           }
 
-          /* -----------------------------------------------
-             MOBILE DOT
-          ----------------------------------------------- */
+          /* ------------------------------------------------
+             DOT
+          ------------------------------------------------ */
 
           .experience-dot {
             left: 12px;
 
-            top: 48px;
+            top: 52px;
           }
 
-          /* -----------------------------------------------
-             MOBILE MARKER
-          ----------------------------------------------- */
+          /* ------------------------------------------------
+             CONNECTOR
+          ------------------------------------------------ */
 
           .experience-marker {
             left: 12px !important;
 
             right: auto !important;
 
-            top: 48px;
+            top: 52px;
 
-            width: 30px !important;
+            width: 30px;
 
-            opacity: 1 !important;
+            opacity: 1;
 
             transform:
               translateX(0);
@@ -1389,26 +1585,55 @@ const Experience = () => {
               left center !important;
           }
 
+          /* ------------------------------------------------
+             TYPOGRAPHY
+          ------------------------------------------------ */
+
+          .experience-year {
+            margin-bottom: 24px;
+
+            font-size: 8px;
+          }
+
           .experience-role {
-            font-size: 2rem;
+            font-size:
+              clamp(
+                1.75rem,
+                8vw,
+                2.3rem
+              );
+          }
+
+          .experience-company {
+            font-size: 8px;
           }
 
           .experience-description {
             font-size: 10px;
+
+            line-height: 1.7;
+
+            margin:
+              20px 0;
           }
 
           .experience-highlight {
             font-size: 9px;
 
-            opacity: 1 !important;
-
-            transform:
-              translateX(0) !important;
+            line-height: 1.55;
           }
+
+          /* ------------------------------------------------
+             SIDE TEXT
+          ------------------------------------------------ */
 
           .experience-side-text {
             display: none;
           }
+
+          /* ------------------------------------------------
+             END
+          ------------------------------------------------ */
 
           .experience-end {
             padding:
@@ -1422,23 +1647,98 @@ const Experience = () => {
 
         @media (max-width: 480px) {
 
+          .experience-header {
+            padding:
+              115px 18px 60px;
+          }
+
           .experience-header h2 {
-            font-size: 3.5rem;
+            font-size:
+              3.4rem;
+          }
+
+          .experience-header-description {
+            max-width: 290px;
+
+            font-size: 8px;
+          }
+
+          .experience-timeline {
+            width:
+              calc(
+                100% - 30px
+              );
+          }
+
+          .experience-item {
+            padding:
+              40px 0 65px 38px !important;
+          }
+
+          .experience-dot {
+            left: 10px;
+
+            top: 48px;
+          }
+
+          .experience-marker {
+            left: 10px !important;
+
+            top: 48px;
+
+            width: 28px;
           }
 
           .experience-content {
             padding:
-              22px 18px;
-          }
-
-          .experience-role {
-            font-size: 1.75rem;
+              22px 17px;
           }
 
           .experience-number {
             right: 15px;
+
+            font-size: 7px;
           }
 
+          .experience-role {
+            font-size:
+              1.7rem;
+          }
+
+          .experience-description {
+            font-size: 9px;
+          }
+
+          .experience-highlight {
+            font-size: 8.5px;
+          }
+        }
+
+        /* ====================================================
+           VERY SMALL DEVICES
+        ==================================================== */
+
+        @media (max-width: 360px) {
+
+          .experience-header h2 {
+            font-size:
+              3rem;
+          }
+
+          .experience-content {
+            padding:
+              20px 15px;
+          }
+
+          .experience-role {
+            font-size:
+              1.55rem;
+          }
+
+          .experience-highlight {
+            font-size:
+              8px;
+          }
         }
 
         /* ====================================================
@@ -1465,6 +1765,10 @@ const Experience = () => {
             opacity: 1 !important;
           }
 
+          .experience-dot {
+            background:
+              var(--green) !important;
+          }
         }
 
       `}</style>

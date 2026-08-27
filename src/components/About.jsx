@@ -483,7 +483,7 @@ const About = () => {
           style={{ color: PALETTE.text, opacity: 0.5 }}
           className="mt-24 flex items-center justify-center gap-3 font-mono text-[10px] tracking-[0.25em]"
         >
-          NEXT — EXPERIENCE
+          NEXT — SKILLS
           <span className="about__next-arrow" style={{ color: PALETTE.accent }}>
             ↓
           </span>
