@@ -44,10 +44,24 @@ const About = () => {
   const headingRef = useRef(null);
   const visualRef = useRef(null);
   const wireframeRef = useRef(null);
+  const eyeLeftRef = useRef(null);
+  const eyeRightRef = useRef(null);
   const cardRef = useRef(null);
   const marqueeRef = useRef(null);
   const statRefs = useRef([]);
   const ctaRefs = useRef([]);
+
+  /* Quick-tweens for the wireframe character — created once,
+     reused on every mousemove. Far cheaper than calling gsap.to()
+     per event, which is worth doing here since this handler can
+     fire dozens of times a second while the cursor moves. */
+  const wireframeTiltX = useRef(null);
+  const wireframeTiltY = useRef(null);
+  const wireframeScale = useRef(null);
+  const eyeLeftX = useRef(null);
+  const eyeLeftY = useRef(null);
+  const eyeRightX = useRef(null);
+  const eyeRightY = useRef(null);
 
   /* ============================================================
      Magnetic buttons — same device as Hero3D's nav links, carried
@@ -107,6 +121,48 @@ const About = () => {
     });
   };
 
+  /* ============================================================
+     Interactive wireframe "character" — reacts to the cursor
+     anywhere within the whole visual column (a bigger, more
+     forgiving hit area than just the icon itself), not only on
+     direct hover. Two small accent dots act as eyes and drift
+     toward the pointer within a tight radius; the whole icon
+     tilts as if turning to look at it.
+     ============================================================ */
+
+  const handleVisualMove = (event) => {
+    const container = visualRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    const px = (event.clientX - rect.left) / rect.width - 0.5;
+    const py = (event.clientY - rect.top) / rect.height - 0.5;
+
+    wireframeTiltY.current?.(px * 22);
+    wireframeTiltX.current?.(py * -18);
+
+    /* Eyes move a few pixels toward the cursor — subtle, only
+       really noticeable once you're already looking closely. */
+    eyeLeftX.current?.(px * 5);
+    eyeLeftY.current?.(py * 5);
+    eyeRightX.current?.(px * 5);
+    eyeRightY.current?.(py * 5);
+  };
+
+  const handleVisualEnter = () => {
+    wireframeScale.current?.(1.06);
+  };
+
+  const handleVisualLeave = () => {
+    wireframeTiltX.current?.(0);
+    wireframeTiltY.current?.(0);
+    wireframeScale.current?.(1);
+    eyeLeftX.current?.(0);
+    eyeLeftY.current?.(0);
+    eyeRightX.current?.(0);
+    eyeRightY.current?.(0);
+  };
+
   useEffect(() => {
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
@@ -115,6 +171,43 @@ const About = () => {
     let split;
 
     const ctx = gsap.context(() => {
+      /* quickTo setup for the wireframe character — must exist
+         before any mousemove handler can use them */
+      if (wireframeRef.current) {
+        wireframeTiltX.current = gsap.quickTo(wireframeRef.current, "rotateX", {
+          duration: 0.6,
+          ease: "power3.out",
+        });
+        wireframeTiltY.current = gsap.quickTo(wireframeRef.current, "rotateY", {
+          duration: 0.6,
+          ease: "power3.out",
+        });
+        wireframeScale.current = gsap.quickTo(wireframeRef.current, "scale", {
+          duration: 0.5,
+          ease: "power3.out",
+        });
+      }
+      if (eyeLeftRef.current) {
+        eyeLeftX.current = gsap.quickTo(eyeLeftRef.current, "x", {
+          duration: 0.4,
+          ease: "power3.out",
+        });
+        eyeLeftY.current = gsap.quickTo(eyeLeftRef.current, "y", {
+          duration: 0.4,
+          ease: "power3.out",
+        });
+      }
+      if (eyeRightRef.current) {
+        eyeRightX.current = gsap.quickTo(eyeRightRef.current, "x", {
+          duration: 0.4,
+          ease: "power3.out",
+        });
+        eyeRightY.current = gsap.quickTo(eyeRightRef.current, "y", {
+          duration: 0.4,
+          ease: "power3.out",
+        });
+      }
+
       if (reduceMotion) {
         gsap.set(
           [
@@ -180,8 +273,33 @@ const About = () => {
         },
       });
 
-      /* Wireframe motif — masked wipe on entrance, then a slow
-         continuous rotation as you scroll through the section. */
+      /* ========================================================
+         WIREFRAME CONTINUITY FROM HERO3D
+
+         Hero3D writes its final spin angle to a CSS variable
+         right as its own last chapter begins (see Hero3D.jsx —
+         search for --hero-exit-rotation). Reading it here means
+         this icon starts spinning from wherever the hero's
+         network left off, instead of from zero — the two
+         icosahedron motifs read as one continuous rotation
+         carrying through the section boundary, not two
+         separately-timed animations that just happen to match.
+         Falls back to 0 if Hero3D hasn't run yet (e.g. someone
+         deep-links straight to #about) or isn't present at all.
+      ======================================================== */
+
+      const handoffRotation =
+        parseFloat(
+          getComputedStyle(document.documentElement).getPropertyValue(
+            "--hero-exit-rotation",
+          ),
+        ) || 0;
+
+      gsap.set(wireframeRef.current, { rotate: handoffRotation });
+
+      /* Masked wipe on entrance, then a slow continuous rotation
+         as you scroll through the section — continuing onward
+         from the handoff angle rather than from a fixed value. */
 
       gsap.fromTo(
         wireframeRef.current,
@@ -200,7 +318,7 @@ const About = () => {
       );
 
       gsap.to(wireframeRef.current, {
-        rotation: 18,
+        rotation: handoffRotation + 18,
         y: -30,
         ease: "none",
         scrollTrigger: {
@@ -405,18 +523,26 @@ const About = () => {
             </div>
           </div>
 
-          {/* ---------- Visual: wireframe motif carried from the hero ---------- */}
+          {/* ---------- Visual: interactive wireframe character ---------- */}
           <div
             ref={visualRef}
+            onMouseMove={handleVisualMove}
+            onMouseEnter={handleVisualEnter}
+            onMouseLeave={handleVisualLeave}
             className="relative h-96 lg:h-[28rem] flex items-center justify-center"
             style={{ perspective: 1000 }}
           >
             <div
               ref={wireframeRef}
-              style={{ opacity: 0.9 }}
+              style={{ opacity: 0.9, transformStyle: "preserve-3d" }}
               className="absolute w-64 h-64 md:w-80 md:h-80"
             >
-              <WireframeIcon color={PALETTE.text} accent={PALETTE.accent} />
+              <InteractiveWireframe
+                color={PALETTE.text}
+                accent={PALETTE.accent}
+                eyeLeftRef={eyeLeftRef}
+                eyeRightRef={eyeRightRef}
+              />
             </div>
 
             {/* Card — hairline frame, subtle cursor tilt, no glass/blur */}
@@ -505,16 +631,27 @@ const About = () => {
           0%, 100% { transform: translateY(0); opacity: 0.6; }
           50% { transform: translateY(5px); opacity: 1; }
         }
+        @media (prefers-reduced-motion: reduce) {
+          .about__next-arrow {
+            animation: none;
+          }
+        }
       `}</style>
     </section>
   );
 };
 
 /**
- * A static SVG echo of the hero's icosahedron wireframe — same visual
- * language, near-zero cost (no WebGL context per section).
+ * The hero's icosahedron wireframe, made interactive: it tilts
+ * toward the cursor (driven by the parent's onMouseMove via
+ * quickTo refs, not by anything in this component itself), and
+ * carries two small accent "eyes" that drift a few pixels toward
+ * the pointer — a character hidden in the geometry rather than a
+ * literal illustrated mascot, so it stays consistent with the
+ * site's minimal wireframe/mono-type language instead of looking
+ * like a bolted-on cartoon.
  */
-const WireframeIcon = ({ color, accent }) => (
+const InteractiveWireframe = ({ color, accent, eyeLeftRef, eyeRightRef }) => (
   <svg viewBox="0 0 200 200" className="w-full h-full">
     <polygon
       points="100,10 178,58 178,142 100,190 22,142 22,58"
@@ -565,6 +702,14 @@ const WireframeIcon = ({ color, accent }) => (
     ].map(([cx, cy], i) => (
       <circle key={i} cx={cx} cy={cy} r="4.5" fill={accent} />
     ))}
+
+    {/* Eyes — small, only intentional on close inspection or once
+        they visibly track the cursor. Positioned near the vertical
+        center line so they read as a quiet face within the shape. */}
+    <g>
+      <circle ref={eyeLeftRef} cx="85" cy="96" r="3" fill={accent} />
+      <circle ref={eyeRightRef} cx="115" cy="96" r="3" fill={accent} />
+    </g>
   </svg>
 );
 
