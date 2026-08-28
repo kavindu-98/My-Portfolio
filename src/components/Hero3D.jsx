@@ -69,12 +69,22 @@ const Hero3D = () => {
 
   /* ============================================================
      THREE.JS
+
+     Geometry detail, node count, and pixel-ratio cap are chosen
+     once at mount based on viewport width. This isn't re-checked
+     on resize/rotation — rebuilding WebGL geometry live is heavy
+     and device class (phone vs desktop) essentially never changes
+     mid-session. Camera framing and network position/scale DO
+     need to respond live to aspect-ratio changes, and that's
+     handled separately below, in the GSAP matchMedia block.
   ============================================================ */
 
   useEffect(() => {
     if (!canvasRef.current || !sectionRef.current) return;
 
     const canvas = canvasRef.current;
+
+    const isMobile = window.innerWidth <= 900;
 
     const scene = new THREE.Scene();
 
@@ -85,13 +95,13 @@ const Hero3D = () => {
     ========================================================== */
 
     const camera = new THREE.PerspectiveCamera(
-      42,
+      isMobile ? 50 : 42,
       window.innerWidth / window.innerHeight,
       0.1,
       100,
     );
 
-    camera.position.set(0, 0, 7);
+    camera.position.set(0, 0, isMobile ? 8.5 : 7);
 
     /* ==========================================================
        RENDERER
@@ -104,7 +114,9 @@ const Hero3D = () => {
       powerPreference: "high-performance",
     });
 
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.7));
+    renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio, isMobile ? 1.4 : 1.7),
+    );
 
     renderer.setSize(window.innerWidth, window.innerHeight, false);
 
@@ -118,23 +130,32 @@ const Hero3D = () => {
 
     /* ==========================================================
        MAIN NETWORK
+       Base position/scale here is just the resting state before
+       any scroll animation runs — the GSAP matchMedia block resets
+       this to a breakpoint-appropriate value the instant it mounts,
+       so these two numbers barely matter, but keeping them mobile-
+       aware too avoids a one-frame flash of the desktop framing.
     ========================================================== */
 
     const network = new THREE.Group();
 
-    network.position.set(1.55, 0, 0);
+    network.position.set(isMobile ? 0.75 : 1.55, 0, 0);
 
-    network.scale.set(1.1, 1.1, 1.1);
+    network.scale.set(
+      isMobile ? 0.85 : 1.1,
+      isMobile ? 0.85 : 1.1,
+      isMobile ? 0.85 : 1.1,
+    );
 
     scene.add(network);
 
     networkRef.current = network;
 
     /* ==========================================================
-       CORE
+       CORE — one detail level lower on mobile
     ========================================================== */
 
-    const coreGeometry = new THREE.IcosahedronGeometry(1.55, 2);
+    const coreGeometry = new THREE.IcosahedronGeometry(1.55, isMobile ? 1 : 2);
 
     const coreMaterial = new THREE.MeshBasicMaterial({
       color: "#63dfcf",
@@ -151,7 +172,7 @@ const Hero3D = () => {
        INNER CORE
     ========================================================== */
 
-    const innerGeometry = new THREE.IcosahedronGeometry(1.02, 2);
+    const innerGeometry = new THREE.IcosahedronGeometry(1.02, isMobile ? 1 : 2);
 
     const innerMaterial = new THREE.MeshBasicMaterial({
       color: "#4ed6c3",
@@ -182,12 +203,12 @@ const Hero3D = () => {
     network.add(outer);
 
     /* ==========================================================
-       NODES
+       NODES — fewer on mobile (16 vs 24)
     ========================================================== */
 
     const nodePositions = [];
 
-    const nodeCount = 24;
+    const nodeCount = isMobile ? 16 : 24;
 
     for (let i = 0; i < nodeCount; i++) {
       const phi = Math.acos(-1 + (2 * i) / nodeCount);
@@ -214,8 +235,8 @@ const Hero3D = () => {
     nodePositions.forEach((position, index) => {
       const geometry = new THREE.SphereGeometry(
         index % 4 === 0 ? 0.085 : 0.055,
-        12,
-        12,
+        isMobile ? 8 : 12,
+        isMobile ? 8 : 12,
       );
 
       const material = new THREE.MeshBasicMaterial({
@@ -282,11 +303,15 @@ const Hero3D = () => {
     network.add(lines);
 
     /* ==========================================================
-       ORBIT RINGS
+       ORBIT RINGS — fewer segments on mobile
     ========================================================== */
 
     const createRing = (radius, rotation, opacity) => {
-      const geometry = new THREE.RingGeometry(radius, radius + 0.008, 128);
+      const geometry = new THREE.RingGeometry(
+        radius,
+        radius + 0.008,
+        isMobile ? 64 : 128,
+      );
 
       const material = new THREE.MeshBasicMaterial({
         color: "#58dcca",
@@ -343,7 +368,9 @@ const Hero3D = () => {
     const ring3 = ring3Data.ring;
 
     /* ==========================================================
-       MOUSE
+       MOUSE — parallax only matters with a real cursor; touch
+       devices just never fire mousemove, so this is naturally
+       inert on mobile without needing a separate guard.
     ========================================================== */
 
     const handleMouseMove = (event) => {
@@ -369,7 +396,9 @@ const Hero3D = () => {
 
       renderer.setSize(width, height, false);
 
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.7));
+      renderer.setPixelRatio(
+        Math.min(window.devicePixelRatio, window.innerWidth <= 900 ? 1.4 : 1.7),
+      );
 
       /*
        * Do NOT call ScrollTrigger.refresh()
@@ -503,6 +532,12 @@ const Hero3D = () => {
 
   /* ============================================================
      HERO SCROLLTRIGGER
+
+     Uses gsap.matchMedia() so the pin distance, camera targets,
+     and network position/scale are each breakpoint-specific —
+     and so the whole timeline rebuilds automatically if the
+     device crosses the breakpoint (e.g. rotating a tablet from
+     portrait to landscape), without a page reload.
   ============================================================ */
 
   useEffect(() => {
@@ -512,497 +547,600 @@ const Hero3D = () => {
 
     const section = sectionRef.current;
 
-    const ctx = gsap.context(() => {
-      const name = nameRef.current;
+    const mm = gsap.matchMedia();
 
-      const engineer = engineerRef.current;
+    mm.add(
+      {
+        isMobile: "(max-width: 900px)",
+        isDesktop: "(min-width: 901px)",
+        reduceMotion: "(prefers-reduced-motion: reduce)",
+      },
+      (context) => {
+        const { isMobile, reduceMotion } = context.conditions;
 
-      const system = systemRef.current;
+        const name = nameRef.current;
 
-      const stack = stackRef.current;
+        const engineer = engineerRef.current;
 
-      const work = workRef.current;
+        const system = systemRef.current;
 
-      const portrait = portraitRef.current;
+        const stack = stackRef.current;
 
-      const network = networkRef.current;
+        const work = workRef.current;
 
-      if (
-        !name ||
-        !engineer ||
-        !system ||
-        !stack ||
-        !work ||
-        !portrait ||
-        !network
-      ) {
-        return;
-      }
+        const portrait = portraitRef.current;
 
-      /* ========================================================
-         REDUCED MOTION
-      ======================================================== */
+        const network = networkRef.current;
 
-      const reduceMotion = window.matchMedia(
-        "(prefers-reduced-motion: reduce)",
-      ).matches;
+        if (
+          !name ||
+          !engineer ||
+          !system ||
+          !stack ||
+          !work ||
+          !portrait ||
+          !network
+        ) {
+          return;
+        }
 
-      if (reduceMotion) {
-        gsap.set([name, engineer, system, stack, work, portrait], {
-          clearProps: "all",
+        /* ======================================================
+           REDUCED MOTION
+        ====================================================== */
+
+        if (reduceMotion) {
+          gsap.set([name, engineer, system, stack, work, portrait], {
+            clearProps: "all",
+          });
+
+          return;
+        }
+
+        /* ======================================================
+           BREAKPOINT-SPECIFIC FRAMING
+
+           Every number that positions the 3D network or camera
+           lives here, in one place, per breakpoint — instead of
+           being scattered as magic numbers through the timeline
+           below. Mobile's narrower field of view needs smaller
+           offsets across the board or the network mesh clips out
+           of frame during the mid-timeline moves.
+        ====================================================== */
+
+        const M = isMobile
+          ? {
+              pinEnd: "+=360%",
+              scrub: 1.1,
+              netX0: 0.75,
+              netScale0: 0.85,
+              cameraZ0: 8.5,
+              netX1: 0.25,
+              cameraZ1: 8.7,
+              netScale2: 1.05,
+              cameraZ2: 9.0,
+              cameraZ3: 8.2,
+              cameraX3: 0.05,
+              rotY3: 0.8,
+              netX4: 1.15,
+              netScale4: 0.6,
+              cameraZ4: 10.5,
+              cameraX4: -0.1,
+              portraitEnabled: false,
+            }
+          : {
+              pinEnd: "+=500%",
+              scrub: 1.4,
+              netX0: 1.55,
+              netScale0: 1.1,
+              cameraZ0: 7,
+              netX1: 0.4,
+              cameraZ1: 7.8,
+              netScale2: 1.25,
+              cameraZ2: 6.7,
+              cameraZ3: 6.7,
+              cameraX3: 0.1,
+              rotY3: 1.2,
+              netX4: 2.1,
+              netScale4: 0.75,
+              cameraZ4: 8.5,
+              cameraX4: -0.2,
+              portraitEnabled: true,
+            };
+
+        /* ======================================================
+           INITIAL STATES
+        ====================================================== */
+
+        gsap.set(name, {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          filter: "blur(0px)",
         });
 
-        return;
-      }
-
-      /* ========================================================
-         INITIAL STATES
-      ======================================================== */
-
-      gsap.set(name, {
-        autoAlpha: 1,
-        y: 0,
-        scale: 1,
-        filter: "blur(0px)",
-      });
-
-      gsap.set([engineer, system, stack, work], {
-        autoAlpha: 0,
-        y: 90,
-        scale: 0.96,
-        filter: "blur(10px)",
-      });
-
-      gsap.set(portrait, {
-        autoAlpha: 0,
-        x: 64,
-        scale: 1.05,
-        filter: "blur(16px)",
-      });
-
-      /* ========================================================
-         RESET THREE TARGETS
-      ======================================================== */
-
-      cameraTarget.current.x = 0;
-      cameraTarget.current.y = 0;
-      cameraTarget.current.z = 7;
-
-      rotationTarget.current.x = 0;
-      rotationTarget.current.y = 0;
-      rotationTarget.current.z = 0;
-
-      gsap.set(network.position, {
-        x: 1.55,
-        y: 0,
-        z: 0,
-      });
-
-      gsap.set(network.scale, {
-        x: 1.1,
-        y: 1.1,
-        z: 1.1,
-      });
-
-      /* ========================================================
-         MASTER TIMELINE
-      ======================================================== */
-
-      const timeline = gsap.timeline({
-        defaults: {
-          overwrite: "auto",
-        },
-
-        scrollTrigger: {
-          trigger: section,
-
-          start: "top top",
-
-          end: "+=500%",
-
-          pin: true,
-
-          scrub: 1.4,
-
-          anticipatePin: 1,
-
-          invalidateOnRefresh: true,
-
-          fastScrollEnd: true,
-
-          pinSpacing: true,
-
-          refreshPriority: 100,
-        },
-      });
-
-      /* ========================================================
-         01 — NAME
-      ======================================================== */
-
-      timeline.to(
-        {},
-        {
-          duration: 1,
-        },
-      );
-
-      /* ========================================================
-         EXIT NAME
-      ======================================================== */
-
-      timeline.to(name, {
-        autoAlpha: 0,
-        y: -90,
-        scale: 0.95,
-        filter: "blur(10px)",
-        duration: 0.8,
-        ease: "power2.inOut",
-      });
-
-      /* ========================================================
-         02 — ENGINEER
-      ======================================================== */
-
-      timeline.fromTo(
-        engineer,
-        {
+        gsap.set([engineer, system, stack, work], {
           autoAlpha: 0,
           y: 90,
-          scale: 0.94,
-          filter: "blur(12px)",
-        },
-        {
-          autoAlpha: 1,
-          y: 0,
-          scale: 1,
-          filter: "blur(0px)",
-          duration: 1,
-          ease: "power3.out",
-        },
-        "<0.2",
-      );
-
-      /* 3D */
-
-      timeline.to(
-        network.position,
-        {
-          x: 0.4,
-          duration: 1.2,
-          ease: "power2.inOut",
-        },
-        "<",
-      );
-
-      /* Portrait */
-
-      timeline.fromTo(
-        portrait,
-        {
-          autoAlpha: 0,
-          x: 64,
-          scale: 1.05,
-          filter: "blur(16px)",
-        },
-        {
-          autoAlpha: 1,
-          x: 0,
-          scale: 1,
-          filter: "blur(0px)",
-          duration: 1.2,
-          ease: "power3.out",
-        },
-        "<0.15",
-      );
-
-      /* HOLD */
-
-      timeline.to(
-        {},
-        {
-          duration: 0.7,
-        },
-      );
-
-      /* ========================================================
-         EXIT ENGINEER
-      ======================================================== */
-
-      timeline.to(engineer, {
-        autoAlpha: 0,
-        y: -80,
-        scale: 0.96,
-        filter: "blur(9px)",
-        duration: 0.75,
-        ease: "power2.inOut",
-      });
-
-      /* ========================================================
-         03 — SYSTEM
-      ======================================================== */
-
-      timeline.fromTo(
-        system,
-        {
-          autoAlpha: 0,
-          y: 90,
-          scale: 0.94,
-          filter: "blur(12px)",
-        },
-        {
-          autoAlpha: 1,
-          y: 0,
-          scale: 1,
-          filter: "blur(0px)",
-          duration: 1,
-          ease: "power3.out",
-        },
-        "<0.18",
-      );
-
-      /* Network grows */
-
-      timeline.to(
-        network.scale,
-        {
-          x: 1.25,
-          y: 1.25,
-          z: 1.25,
-          duration: 1.2,
-          ease: "power2.inOut",
-        },
-        "<",
-      );
-
-      /* Camera */
-
-      timeline.to(
-        cameraTarget.current,
-        {
-          z: 7.8,
-          duration: 1.2,
-          ease: "power2.inOut",
-        },
-        "<",
-      );
-
-      /* Portrait */
-
-      timeline.to(
-        portrait,
-        {
-          x: -14,
-          duration: 1.2,
-          ease: "power2.inOut",
-        },
-        "<",
-      );
-
-      /* HOLD */
-
-      timeline.to(
-        {},
-        {
-          duration: 0.7,
-        },
-      );
-
-      /* ========================================================
-         EXIT SYSTEM
-      ======================================================== */
-
-      timeline.to(system, {
-        autoAlpha: 0,
-        y: -80,
-        scale: 0.96,
-        filter: "blur(9px)",
-        duration: 0.75,
-        ease: "power2.inOut",
-      });
-
-      /* ========================================================
-         04 — STACK
-      ======================================================== */
-
-      timeline.fromTo(
-        stack,
-        {
-          autoAlpha: 0,
-          y: 90,
-          scale: 0.94,
-          filter: "blur(12px)",
-        },
-        {
-          autoAlpha: 1,
-          y: 0,
-          scale: 1,
-          filter: "blur(0px)",
-          duration: 1,
-          ease: "power3.out",
-        },
-        "<0.18",
-      );
-
-      /* 3D rotation */
-
-      timeline.to(
-        rotationTarget.current,
-        {
-          x: 0.3,
-          y: 1.2,
-          z: 0.1,
-          duration: 1.5,
-          ease: "none",
-        },
-        "<",
-      );
-
-      /* Camera */
-
-      timeline.to(
-        cameraTarget.current,
-        {
-          z: 6.7,
-          x: 0.1,
-          duration: 1.2,
-          ease: "power2.inOut",
-        },
-        "<",
-      );
-
-      /* Portrait */
-
-      timeline.to(
-        portrait,
-        {
-          x: 0,
-          duration: 1.2,
-          ease: "power2.inOut",
-        },
-        "<",
-      );
-
-      /* HOLD */
-
-      timeline.to(
-        {},
-        {
-          duration: 0.75,
-        },
-      );
-
-      /* ========================================================
-         EXIT STACK
-      ======================================================== */
-
-      timeline.to(stack, {
-        autoAlpha: 0,
-        y: -80,
-        scale: 0.96,
-        filter: "blur(9px)",
-        duration: 0.75,
-        ease: "power2.inOut",
-      });
-
-      timeline.to(
-        portrait,
-        {
-          autoAlpha: 0,
-          x: -48,
           scale: 0.96,
-          filter: "blur(12px)",
+          filter: "blur(10px)",
+        });
+
+        if (M.portraitEnabled) {
+          gsap.set(portrait, {
+            autoAlpha: 0,
+            x: 64,
+            scale: 1.05,
+            filter: "blur(16px)",
+          });
+        } else {
+          /* Portrait is display:none via CSS below 900px anyway —
+             this just keeps GSAP's own bookkeeping consistent so
+             nothing tries to fade in a hidden element. */
+          gsap.set(portrait, { autoAlpha: 0 });
+        }
+
+        /* ======================================================
+           RESET THREE TARGETS
+        ====================================================== */
+
+        cameraTarget.current.x = 0;
+        cameraTarget.current.y = 0;
+        cameraTarget.current.z = M.cameraZ0;
+
+        rotationTarget.current.x = 0;
+        rotationTarget.current.y = 0;
+        rotationTarget.current.z = 0;
+
+        gsap.set(network.position, {
+          x: M.netX0,
+          y: 0,
+          z: 0,
+        });
+
+        gsap.set(network.scale, {
+          x: M.netScale0,
+          y: M.netScale0,
+          z: M.netScale0,
+        });
+
+        /* ======================================================
+           MASTER TIMELINE
+        ====================================================== */
+
+        const timeline = gsap.timeline({
+          defaults: {
+            overwrite: "auto",
+          },
+
+          scrollTrigger: {
+            trigger: section,
+
+            start: "top top",
+
+            end: M.pinEnd,
+
+            pin: true,
+
+            scrub: M.scrub,
+
+            anticipatePin: 1,
+
+            invalidateOnRefresh: true,
+
+            fastScrollEnd: true,
+
+            pinSpacing: true,
+
+            refreshPriority: 100,
+          },
+        });
+
+        /* ======================================================
+           01 — NAME
+        ====================================================== */
+
+        timeline.to(
+          {},
+          {
+            duration: 1,
+          },
+        );
+
+        /* ======================================================
+           EXIT NAME
+        ====================================================== */
+
+        timeline.to(name, {
+          autoAlpha: 0,
+          y: -90,
+          scale: 0.95,
+          filter: "blur(10px)",
+          duration: 0.8,
+          ease: "power2.inOut",
+        });
+
+        /* ======================================================
+           02 — ENGINEER
+        ====================================================== */
+
+        timeline.fromTo(
+          engineer,
+          {
+            autoAlpha: 0,
+            y: 90,
+            scale: 0.94,
+            filter: "blur(12px)",
+          },
+          {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+            filter: "blur(0px)",
+            duration: 1,
+            ease: "power3.out",
+          },
+          "<0.2",
+        );
+
+        /* 3D */
+
+        timeline.to(
+          network.position,
+          {
+            x: M.netX1,
+            duration: 1.2,
+            ease: "power2.inOut",
+          },
+          "<",
+        );
+
+        /* Portrait — desktop only */
+
+        if (M.portraitEnabled) {
+          timeline.fromTo(
+            portrait,
+            {
+              autoAlpha: 0,
+              x: 64,
+              scale: 1.05,
+              filter: "blur(16px)",
+            },
+            {
+              autoAlpha: 1,
+              x: 0,
+              scale: 1,
+              filter: "blur(0px)",
+              duration: 1.2,
+              ease: "power3.out",
+            },
+            "<0.15",
+          );
+        }
+
+        /* HOLD */
+
+        timeline.to(
+          {},
+          {
+            duration: 0.7,
+          },
+        );
+
+        /* ======================================================
+           EXIT ENGINEER
+        ====================================================== */
+
+        timeline.to(engineer, {
+          autoAlpha: 0,
+          y: -80,
+          scale: 0.96,
+          filter: "blur(9px)",
           duration: 0.75,
           ease: "power2.inOut",
-        },
-        "<",
-      );
+        });
 
-      /* ========================================================
-         05 — WORK
-      ======================================================== */
+        /* ======================================================
+           03 — SYSTEM
+        ====================================================== */
 
-      timeline.fromTo(
-        work,
-        {
+        timeline.fromTo(
+          system,
+          {
+            autoAlpha: 0,
+            y: 90,
+            scale: 0.94,
+            filter: "blur(12px)",
+          },
+          {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+            filter: "blur(0px)",
+            duration: 1,
+            ease: "power3.out",
+          },
+          "<0.18",
+        );
+
+        /* Network grows */
+
+        timeline.to(
+          network.scale,
+          {
+            x: M.netScale2,
+            y: M.netScale2,
+            z: M.netScale2,
+            duration: 1.2,
+            ease: "power2.inOut",
+          },
+          "<",
+        );
+
+        /* Camera */
+
+        timeline.to(
+          cameraTarget.current,
+          {
+            z: M.cameraZ1,
+            duration: 1.2,
+            ease: "power2.inOut",
+          },
+          "<",
+        );
+
+        /* Portrait — desktop only */
+
+        if (M.portraitEnabled) {
+          timeline.to(
+            portrait,
+            {
+              x: -14,
+              duration: 1.2,
+              ease: "power2.inOut",
+            },
+            "<",
+          );
+        }
+
+        /* HOLD */
+
+        timeline.to(
+          {},
+          {
+            duration: 0.7,
+          },
+        );
+
+        /* ======================================================
+           EXIT SYSTEM
+        ====================================================== */
+
+        timeline.to(system, {
           autoAlpha: 0,
-          y: 90,
-          scale: 0.94,
-          filter: "blur(12px)",
-        },
-        {
-          autoAlpha: 1,
-          y: 0,
-          scale: 1,
-          filter: "blur(0px)",
-          duration: 1,
-          ease: "power3.out",
-        },
-        "<0.18",
-      );
-
-      /* 3D moves away */
-
-      timeline.to(
-        network.position,
-        {
-          x: 2.1,
-          duration: 1.3,
-          ease: "power3.inOut",
-        },
-        "<",
-      );
-
-      timeline.to(
-        network.scale,
-        {
-          x: 0.75,
-          y: 0.75,
-          z: 0.75,
-          duration: 1.3,
-          ease: "power3.inOut",
-        },
-        "<",
-      );
-
-      timeline.to(
-        cameraTarget.current,
-        {
-          z: 8.5,
-          x: -0.2,
-          duration: 1.2,
+          y: -80,
+          scale: 0.96,
+          filter: "blur(9px)",
+          duration: 0.75,
           ease: "power2.inOut",
-        },
-        "<",
-      );
+        });
 
-      /* ========================================================
-         FINAL HOLD
-      ======================================================== */
+        /* ======================================================
+           04 — STACK
+        ====================================================== */
 
-      timeline.to(
-        {},
-        {
-          duration: 1,
-        },
-      );
+        timeline.fromTo(
+          stack,
+          {
+            autoAlpha: 0,
+            y: 90,
+            scale: 0.94,
+            filter: "blur(12px)",
+          },
+          {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+            filter: "blur(0px)",
+            duration: 1,
+            ease: "power3.out",
+          },
+          "<0.18",
+        );
 
-      /* ========================================================
-         SAVE REFERENCE
-      ======================================================== */
+        /* 3D rotation */
 
-      section.__heroTimeline = timeline;
+        timeline.to(
+          rotationTarget.current,
+          {
+            x: 0.3,
+            y: M.rotY3,
+            z: 0.1,
+            duration: 1.5,
+            ease: "none",
+          },
+          "<",
+        );
 
-      /*
-       * IMPORTANT:
-       *
-       * Do NOT call ScrollTrigger.refresh()
-       * here immediately.
-       *
-       * The centralized refresh system will run
-       * after fonts + images are ready.
-       */
-    }, section);
+        /* Camera */
+
+        timeline.to(
+          cameraTarget.current,
+          {
+            z: M.cameraZ2,
+            x: M.cameraX3,
+            duration: 1.2,
+            ease: "power2.inOut",
+          },
+          "<",
+        );
+
+        /* Portrait — desktop only */
+
+        if (M.portraitEnabled) {
+          timeline.to(
+            portrait,
+            {
+              x: 0,
+              duration: 1.2,
+              ease: "power2.inOut",
+            },
+            "<",
+          );
+        }
+
+        /* HOLD */
+
+        timeline.to(
+          {},
+          {
+            duration: 0.75,
+          },
+        );
+
+        /* ======================================================
+           EXIT STACK
+        ====================================================== */
+
+        timeline.to(stack, {
+          autoAlpha: 0,
+          y: -80,
+          scale: 0.96,
+          filter: "blur(9px)",
+          duration: 0.75,
+          ease: "power2.inOut",
+        });
+
+        if (M.portraitEnabled) {
+          timeline.to(
+            portrait,
+            {
+              autoAlpha: 0,
+              x: -48,
+              scale: 0.96,
+              filter: "blur(12px)",
+              duration: 0.75,
+              ease: "power2.inOut",
+            },
+            "<",
+          );
+        }
+
+        /* ======================================================
+           05 — WORK
+        ====================================================== */
+
+        /* Hand off to About: write the network's current spin
+           angle to a CSS var right as this last chapter begins.
+           About reads this once on mount and starts its own
+           wireframe rotation from here instead of from zero —
+           the two icosahedron motifs read as one continuous
+           spin carrying through the section boundary, rather
+           than two separately-timed animations that happen to
+           look similar. */
+
+        timeline.call(
+          () => {
+            const degrees = (rotationTarget.current.y * 180) / Math.PI;
+            document.documentElement.style.setProperty(
+              "--hero-exit-rotation",
+              `${degrees}deg`,
+            );
+          },
+          [],
+          "<",
+        );
+
+        timeline.fromTo(
+          work,
+          {
+            autoAlpha: 0,
+            y: 90,
+            scale: 0.94,
+            filter: "blur(12px)",
+          },
+          {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+            filter: "blur(0px)",
+            duration: 1,
+            ease: "power3.out",
+          },
+          "<0.18",
+        );
+
+        /* 3D moves away */
+
+        timeline.to(
+          network.position,
+          {
+            x: M.netX4,
+            duration: 1.3,
+            ease: "power3.inOut",
+          },
+          "<",
+        );
+
+        timeline.to(
+          network.scale,
+          {
+            x: M.netScale4,
+            y: M.netScale4,
+            z: M.netScale4,
+            duration: 1.3,
+            ease: "power3.inOut",
+          },
+          "<",
+        );
+
+        timeline.to(
+          cameraTarget.current,
+          {
+            z: M.cameraZ4,
+            x: M.cameraX4,
+            duration: 1.2,
+            ease: "power2.inOut",
+          },
+          "<",
+        );
+
+        /* ======================================================
+           FINAL HOLD
+        ====================================================== */
+
+        timeline.to(
+          {},
+          {
+            duration: 1,
+          },
+        );
+
+        /* ======================================================
+           SAVE REFERENCE
+        ====================================================== */
+
+        section.__heroTimeline = timeline;
+
+        /*
+         * IMPORTANT:
+         *
+         * Do NOT call ScrollTrigger.refresh()
+         * here immediately.
+         *
+         * The centralized refresh system will run
+         * after fonts + images are ready.
+         */
+
+        /* matchMedia calls this automatically when the breakpoint
+           changes or the component unmounts — this is the ctx.revert()
+           equivalent for a single matched condition. */
+        return () => {
+          if (section.__heroTimeline === timeline) {
+            delete section.__heroTimeline;
+          }
+        };
+      },
+    );
 
     /* ==========================================================
        WAIT FOR FONT + IMAGE LAYOUT
@@ -1076,11 +1214,7 @@ const Hero3D = () => {
         resizeObserver.disconnect();
       }
 
-      if (section.__heroTimeline) {
-        delete section.__heroTimeline;
-      }
-
-      ctx.revert();
+      mm.revert();
     };
   }, [ready]);
 
@@ -1514,6 +1648,52 @@ const Hero3D = () => {
 
         .hero3d__nav a:hover::after {
           width: 100%;
+        }
+
+        /* ======================================================
+           MOBILE NAV TOGGLE (hamburger)
+        ====================================================== */
+
+        .hero3d__nav-toggle {
+          display: none;
+
+          width: 34px;
+          height: 34px;
+
+          align-items: center;
+          justify-content: center;
+
+          background: transparent;
+          border: 1px solid rgba(23, 63, 56, 0.18);
+          border-radius: 4px;
+
+          cursor: pointer;
+        }
+
+        .hero3d__nav-toggle span {
+          display: block;
+          width: 14px;
+          height: 1px;
+          background: #123c35;
+          position: relative;
+        }
+
+        .hero3d__nav-toggle span::before,
+        .hero3d__nav-toggle span::after {
+          content: "";
+          position: absolute;
+          left: 0;
+          width: 14px;
+          height: 1px;
+          background: #123c35;
+        }
+
+        .hero3d__nav-toggle span::before {
+          top: -5px;
+        }
+
+        .hero3d__nav-toggle span::after {
+          top: 5px;
         }
 
         /* ======================================================
@@ -2142,8 +2322,36 @@ const Hero3D = () => {
         }
 
         /* ======================================================
-           TABLET
+           TABLET (901px was the old cliff — 769–1024 now steps
+           down gradually instead of jumping straight to phone
+           layout)
         ====================================================== */
+
+        @media (max-width: 1024px) {
+          .hero3d__chapter {
+            width: min(640px, 62vw);
+          }
+
+          .hero3d__portrait {
+            width: 30%;
+          }
+
+          .hero3d__label--node {
+            right: 38%;
+          }
+
+          .hero3d__label--react {
+            right: 34%;
+          }
+
+          .hero3d__label--mysql {
+            right: 40%;
+          }
+
+          .hero3d__label--api {
+            right: 36%;
+          }
+        }
 
         @media (max-width: 900px) {
           .hero3d__chapter {
@@ -2163,12 +2371,8 @@ const Hero3D = () => {
             display: none;
           }
 
-          .hero3d__label--node {
-            right: 10%;
-          }
-
-          .hero3d__label--mysql {
-            right: 8%;
+          .hero3d__labels {
+            display: none;
           }
         }
 
@@ -2178,25 +2382,36 @@ const Hero3D = () => {
 
         @media (max-width: 640px) {
           .hero3d {
-            min-height: 650px;
+            min-height: 100svh;
+            height: 100svh;
           }
 
           .hero3d__nav {
-            padding: 17px 18px;
+            padding: 16px 18px;
           }
 
           .hero3d__nav nav {
             display: none;
           }
 
+          .hero3d__nav-toggle {
+            display: flex;
+          }
+
           .hero3d__status {
-            top: 70px;
+            top: 66px;
 
             left: 18px;
 
-            max-width: 230px;
+            right: 18px;
 
-            line-height: 1.6;
+            max-width: none;
+
+            line-height: 1.5;
+
+            font-size: 8px;
+
+            letter-spacing: 0.14em;
           }
 
           .hero3d__chapter {
@@ -2209,66 +2424,143 @@ const Hero3D = () => {
           }
 
           .hero3d__chapter--name {
-            top: 54%;
+            top: 52%;
           }
 
           .hero3d__chapter--name h1 {
             font-size:
               clamp(
-                3.6rem,
-                18vw,
-                6rem
+                3rem,
+                15vw,
+                4.5rem
               );
+
+            line-height: 0.86;
+          }
+
+          .hero3d__chapter--name p {
+            font-size: 12px;
+            margin-top: 20px;
+          }
+
+          .hero3d__eyebrow {
+            font-size: 9px;
+            letter-spacing: 0.22em;
+          }
+
+          .hero3d__chapter-number {
+            margin-bottom: 16px;
           }
 
           .hero3d__chapter--engineer h2 {
             font-size:
               clamp(
-                3.3rem,
-                15vw,
-                5.5rem
+                2.6rem,
+                12vw,
+                4rem
               );
           }
 
           .hero3d__chapter--system h2 {
             font-size:
               clamp(
-                3rem,
-                14vw,
-                5rem
+                2.3rem,
+                11vw,
+                3.6rem
               );
           }
 
           .hero3d__chapter--stack h2 {
             font-size:
               clamp(
-                3rem,
-                14vw,
-                5rem
+                2.3rem,
+                11vw,
+                3.6rem
               );
           }
 
           .hero3d__chapter--work h2 {
             font-size:
               clamp(
-                3.5rem,
-                16vw,
-                5.5rem
+                2.6rem,
+                13vw,
+                4.2rem
               );
           }
 
-          .hero3d__labels {
-            display: none;
+          .hero3d__chapter-description {
+            gap: 12px;
+            margin-top: 24px;
+          }
+
+          .hero3d__chapter-description span {
+            font-size: 20px;
+          }
+
+          .hero3d__tech-list {
+            margin-top: 24px;
+            gap: 6px;
+          }
+
+          .hero3d__tech-list span {
+            padding: 7px 11px;
+            font-size: 7px;
           }
 
           .hero3d__scroll {
-            left: 18px;
-            bottom: 22px;
+            left: 16px;
+            bottom: 18px;
+          }
+
+          .hero3d__scroll-line {
+            height: 34px;
           }
 
           .hero3d__index {
-            right: 18px;
-            bottom: 22px;
+            right: 16px;
+            bottom: 18px;
+            gap: 9px;
+          }
+        }
+
+        /* ======================================================
+           VERY SMALL / LANDSCAPE PHONES
+        ====================================================== */
+
+        @media (max-width: 400px) {
+          .hero3d__chapter--name h1 {
+            font-size: 2.5rem;
+          }
+
+          .hero3d__chapter--engineer h2,
+          .hero3d__chapter--system h2,
+          .hero3d__chapter--stack h2 {
+            font-size: 2.1rem;
+          }
+        }
+
+        @media (max-width: 900px) and (orientation: landscape) {
+          .hero3d {
+            min-height: 100svh;
+            height: 100svh;
+          }
+
+          .hero3d__chapter {
+            top: 50% !important;
+          }
+
+          .hero3d__status {
+            display: none;
+          }
+        }
+
+        /* ======================================================
+           REDUCED MOTION
+        ====================================================== */
+
+        @media (prefers-reduced-motion: reduce) {
+          .hero3d__portrait-scan {
+            animation: none;
           }
         }
       `}</style>
@@ -2308,7 +2600,10 @@ const Hero3D = () => {
         <div className="hero3d__noise" />
 
         {/* ====================================================
-            PORTRAIT
+            PORTRAIT — CSS hides this below 900px; the JS side
+            (M.portraitEnabled) independently skips animating it
+            there too, so there's no dead animation running on a
+            hidden element.
         ==================================================== */}
 
         <div ref={portraitRef} className="hero3d__portrait">
@@ -2346,6 +2641,14 @@ const Hero3D = () => {
 
             <a href="#contact">CONTACT</a>
           </nav>
+
+          {/* Purely decorative placeholder toggle for mobile —
+              wire this to your real mobile-menu state if you
+              have one; shown here so the header doesn't look
+              broken/empty on phones where the nav links hide. */}
+          <button className="hero3d__nav-toggle" aria-label="Open menu">
+            <span />
+          </button>
         </header>
 
         {/* ====================================================
@@ -2506,7 +2809,7 @@ const Hero3D = () => {
         </div>
 
         {/* ====================================================
-            FLOATING TECH LABELS
+            FLOATING TECH LABELS — CSS hides these below 900px
         ==================================================== */}
 
         <div className="hero3d__labels">
