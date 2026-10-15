@@ -564,8 +564,7 @@ const Projects = () => {
          from App.jsx (see refreshScrollTriggersOnce in
          gsapAnimations.js) — and Hero3D also fires one final
          refresh itself right after its own pin is created, to
-         correct everything below it. Don't add a refresh call
-         back here; it will reintroduce this exact bug.
+         correct everything below it. 
       ====================================================== */
     }, section);
 
