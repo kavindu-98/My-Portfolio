@@ -1,0 +1,42 @@
+/**
+ * SHARED DESIGN TOKENS
+ * Every section (Hero3D, About, Skills, Projects, Experience,
+ * Contact, Footer) should read colors from these variables
+ * instead of hardcoding its own hex values. This file is the
+ * single source of truth — if the palette ever changes, it
+ * changes here once instead of in six places that drift apart.
+ * 
+ * Import this ONCE, at the top of index.css, before anything else.
+ *
+ * @format
+ */
+
+:root {
+  /* Surfaces */
+  --bg: #f5f8f6; /* page background */
+  --surface: #fcfffd; /* cards, form fields, raised panels */
+  --surface-tint: #eff7f4; /* alternate section background */
+
+  /* Structure */
+  --line: rgba(23, 63, 56, 0.14);
+  --line-strong: rgba(23, 63, 56, 0.25);
+
+  /* Accent */
+  --accent: #5fd6c4;
+  --accent-bright: #8be8cf;
+  --accent-dim: rgba(95, 214, 196, 0.12);
+
+  /* Text */
+  --text: #123c35;
+  --text-muted: rgba(18, 60, 53, 0.62);
+  --text-faint: rgba(18, 60, 53, 0.35);
+
+  /* Type */
+  --font-mono: "IBM Plex Mono", "Courier New", monospace;
+  --font-sans: "Inter", -apple-system, sans-serif;
+
+  /* Background grid — standardized so it doesn't visibly resize
+     between sections when you scroll past a boundary */
+  --grid-size: 72px;
+  --grid-opacity: 0.28;
+}

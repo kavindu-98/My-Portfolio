@@ -1,0 +1,139 @@
+/** @format */
+
+@import "./tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background: var(--bg);
+  font-family: var(--font-sans);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+#root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* ============================================================
+   SCROLLBAR — mint, matching the rest of the site
+============================================================ */
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-bright);
+}
+
+/* ============================================================
+   SELECTION
+============================================================ */
+
+::selection {
+  background-color: var(--accent-dim);
+  color: var(--text);
+}
+
+/* ============================================================
+   REUSABLE SECTION GRID
+   Use this ONE class everywhere instead of each section
+   redefining its own background-image grid at a slightly
+   different size/opacity. Drop `<div className="section-grid" />`
+   as the first child of any section.
+============================================================ */
+
+.section-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--grid-opacity);
+  z-index: 0;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black 12%,
+    black 88%,
+    transparent
+  );
+}
+
+/* ============================================================
+   SHARED CHAPTER-REVEAL MOTION PRIMITIVE
+   Matches the blur/scale/y language used in Hero3D and About,
+   so GSAP-driven reveals across every section feel identical.
+   (Used as the *initial* CSS state before JS takes over —
+   prevents a flash of fully-visible content before GSAP runs.)
+============================================================ */
+
+.reveal-up {
+  opacity: 0;
+  transform: translateY(40px) scale(0.97);
+  filter: blur(6px);
+  will-change: transform, opacity, filter;
+}
+
+/* ============================================================
+   GENERAL
+============================================================ */
+
+::-webkit-scrollbar-corner {
+  background: var(--bg);
+}
+
+input,
+textarea,
+select {
+  font-size: 16px; /* prevents iOS zoom on focus */
+  font-family: inherit;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+}
